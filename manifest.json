@@ -1,0 +1,23 @@
+{
+  "name": "Cyungys CRM",
+  "short_name": "CRM",
+  "description": "CRM personal Cyungys",
+  "start_url": "/crm/",
+  "display": "standalone",
+  "background_color": "#0F0B15",
+  "theme_color": "#5B2D8E",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

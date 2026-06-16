@@ -1,0 +1,2020 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Cyungys CRM</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#5B2D8E">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cyungys CRM">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --purple: #5B2D8E;
+    --purple-light: #7B4DB5;
+    --purple-dim: #2A1242;
+    --orange: #F47920;
+    --orange-dim: #3D1F00;
+    --bg: #0F0B15;
+    --surface: #1A1425;
+    --surface2: #241C35;
+    --surface3: #2E2445;
+    --border: #3A2E52;
+    --text: #EDE8F5;
+    --text-muted: #8B7FA8;
+    --text-dim: #5A5070;
+    --green: #2ECC71;
+    --green-dim: #0D3D20;
+    --red: #E74C3C;
+    --red-dim: #3D0D0D;
+    --yellow: #F1C40F;
+    --yellow-dim: #3D3000;
+    --blue: #3498DB;
+    --blue-dim: #0D2540;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; line-height: 1.5; }
+
+  /* ── WORKSPACE SWITCHER (rândul de sus) ── */
+  .ws-bar {
+    background: #0A0710;
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+    display: flex;
+    align-items: stretch;
+    overflow-x: auto;
+    scrollbar-width: none;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+  }
+  .ws-bar::-webkit-scrollbar { display: none; }
+  .ws-tab {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    transition: all 0.15s;
+    position: relative;
+    user-select: none;
+  }
+  .ws-tab:hover { color: var(--text-muted); }
+  .ws-tab.active { color: var(--text); border-bottom-color: var(--orange); }
+  .ws-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .ws-badge {
+    background: var(--red);
+    color: #fff;
+    border-radius: 10px;
+    padding: 1px 5px;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 16px;
+    text-align: center;
+  }
+  .ws-add-btn {
+    margin-left: auto;
+    padding: 10px 14px;
+    cursor: pointer;
+    color: var(--text-dim);
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+    border: none;
+    background: transparent;
+    flex-shrink: 0;
+  }
+  .ws-add-btn:hover { color: var(--orange); }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 41px;
+    z-index: 100;
+  }
+  .ws-name-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 16px;
+  }
+  .ws-color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+
+  /* ── INNER TABS ── */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    padding: 10px 20px 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    padding: 7px 14px;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    border: 1px solid transparent;
+    border-bottom: none;
+    white-space: nowrap;
+    transition: all 0.15s;
+    background: transparent;
+  }
+  .tab.active { background: var(--bg); color: var(--text); border-color: var(--border); }
+  .tab:hover:not(.active) { color: var(--text); background: var(--surface2); }
+
+  /* ── MAIN ── */
+  .main { padding: 18px; max-width: 1400px; margin: 0 auto; }
+
+  /* ── STATS ── */
+  .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+  .stat-value { font-size: 24px; font-weight: 700; font-family: 'DM Mono', monospace; line-height: 1; }
+  .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px; }
+
+  /* ── FILTERS ── */
+  .filters { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+  .filter-btn { padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif; }
+  .filter-btn:hover { border-color: var(--purple-light); color: var(--text); }
+  .filter-btn.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+  .search-box { flex: 1; min-width: 160px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; color: var(--text); font-size: 13px; font-family: 'Inter', sans-serif; outline: none; }
+  .search-box:focus { border-color: var(--purple-light); }
+  .search-box::placeholder { color: var(--text-dim); }
+
+  /* ── CARDS ── */
+  .clients-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+  .client-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; cursor: pointer; transition: all 0.15s; position: relative; overflow: hidden; }
+  .client-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 3px 0 0 3px; }
+  .client-card.status-lead::before { background: var(--text-muted); }
+  .client-card.status-oferta::before { background: var(--blue); }
+  .client-card.status-negociere::before { background: var(--yellow); }
+  .client-card.status-castigat::before { background: var(--green); }
+  .client-card.status-pierdut::before { background: var(--red); }
+  .client-card:hover { border-color: var(--purple-light); transform: translateY(-1px); box-shadow: var(--shadow); }
+  .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .client-name { font-weight: 600; font-size: 14px; line-height: 1.2; }
+  .client-contact { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .status-badge { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.3px; }
+  .badge-lead { background: var(--surface3); color: var(--text-muted); }
+  .badge-oferta { background: var(--blue-dim); color: var(--blue); }
+  .badge-negociere { background: var(--yellow-dim); color: var(--yellow); }
+  .badge-castigat { background: var(--green-dim); color: var(--green); }
+  .badge-pierdut { background: var(--red-dim); color: var(--red); }
+  .media-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+  .media-tag { font-size: 10px; padding: 2px 7px; border-radius: 4px; font-weight: 500; background: var(--purple-dim); color: var(--purple-light); border: 1px solid rgba(91,45,142,0.4); }
+  .media-tag.ooh { background: rgba(244,121,32,0.1); color: var(--orange); border-color: rgba(244,121,32,0.3); }
+  .media-tag.radio { background: rgba(52,152,219,0.1); color: var(--blue); border-color: rgba(52,152,219,0.3); }
+  .media-tag.indoor { background: rgba(91,45,142,0.15); color: var(--purple-light); border-color: rgba(91,45,142,0.3); }
+  .media-tag.digital { background: rgba(46,204,113,0.1); color: var(--green); border-color: rgba(46,204,113,0.3); }
+  .media-tag.dooh { background: rgba(241,196,15,0.1); color: var(--yellow); border-color: rgba(241,196,15,0.3); }
+  .card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+  .followup-date { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted); }
+  .followup-date.overdue { color: var(--red); }
+  .followup-date.soon { color: var(--yellow); }
+  .followup-date.ok { color: var(--green); }
+  .last-note { font-size: 11px; color: var(--text-dim); font-style: italic; margin-top: 5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* ── BUTTONS ── */
+  .btn { padding: 9px 16px; border-radius: var(--radius-sm); border: none; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-primary { background: var(--purple); color: #fff; }
+  .btn-primary:hover { background: var(--purple-light); }
+  .btn-orange { background: var(--orange); color: #fff; }
+  .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--purple-light); color: var(--text); }
+  .btn-sm { padding: 5px 11px; font-size: 12px; }
+  .btn-danger { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
+  .btn-danger:hover { background: var(--red); color: #fff; }
+
+  /* ── MODAL ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 300; align-items: flex-start; justify-content: center; padding: 16px; overflow-y: auto; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 100%; max-width: 580px; margin: auto; box-shadow: var(--shadow); }
+  .modal-header { padding: 16px 18px 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .modal-title { font-size: 16px; font-weight: 600; }
+  .modal-body { padding: 18px; }
+  .modal-footer { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+  .close-btn { background: transparent; border: none; color: var(--text-muted); font-size: 22px; cursor: pointer; line-height: 1; padding: 2px; }
+  .close-btn:hover { color: var(--text); }
+
+  /* ── FORMS ── */
+  .form-group { margin-bottom: 14px; }
+  .form-label { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+  .form-input, .form-select, .form-textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; color: var(--text); font-size: 13px; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.15s; }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--purple-light); }
+  .form-textarea { resize: vertical; min-height: 75px; }
+  .form-select option { background: var(--surface2); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* ── COLOR PICKER ── */
+  .color-options { display: flex; gap: 8px; flex-wrap: wrap; }
+  .color-opt { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: all 0.15s; }
+  .color-opt.selected { border-color: #fff; transform: scale(1.15); }
+
+  /* ── MEDIA CHECKS ── */
+  .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 7px; }
+  .media-check { display: flex; align-items: center; gap: 7px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 7px 9px; cursor: pointer; font-size: 12px; user-select: none; transition: all 0.15s; }
+  .media-check input { display: none; }
+  .media-check.checked { border-color: var(--purple-light); background: var(--purple-dim); }
+
+  /* ── NOTES ── */
+  .notes-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+  .note-item { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; }
+  .note-date { font-size: 10px; color: var(--text-dim); font-family: 'DM Mono', monospace; margin-bottom: 3px; }
+  .note-text { font-size: 13px; line-height: 1.5; }
+
+  /* ── REMINDERS ── */
+  .reminder-list { display: flex; flex-direction: column; gap: 8px; }
+  .reminder-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+  .reminder-indicator { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+  .reminder-item.overdue .reminder-indicator { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .reminder-item.soon .reminder-indicator { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+  .reminder-item.ok .reminder-indicator { background: var(--green); }
+  .reminder-info { flex: 1; }
+  .reminder-client { font-weight: 600; font-size: 13px; }
+  .reminder-note { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .reminder-date { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text-muted); text-align: right; }
+
+  /* ── PROPUNERI TABLE ── */
+  .propuneri-table { width: 100%; border-collapse: collapse; }
+  .propuneri-table th { text-align: left; font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 7px 10px; border-bottom: 1px solid var(--border); }
+  .propuneri-table td { padding: 10px; border-bottom: 1px solid var(--border); font-size: 12px; vertical-align: middle; }
+  .propuneri-table tr:hover td { background: var(--surface2); }
+
+  /* ── CONFIG BOX ── */
+  .config-box { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 16px; }
+  .config-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 7px; }
+  .config-status { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* ── SECTION TITLE ── */
+  .section-title { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+  hr.divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state { text-align: center; padding: 50px 20px; color: var(--text-muted); }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+  .empty-sub { font-size: 13px; }
+
+  /* ── TOAST ── */
+  .toast { position: fixed; bottom: 20px; right: 20px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 16px; font-size: 13px; z-index: 500; box-shadow: var(--shadow); transform: translateY(60px); opacity: 0; transition: all 0.22s; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-left: 3px solid var(--green); }
+  .toast.error { border-left: 3px solid var(--red); }
+  .toast.info { border-left: 3px solid var(--blue); }
+
+  @media (max-width: 600px) {
+    .header { padding: 10px 12px; top: 39px; }
+    .main { padding: 12px; }
+    .clients-grid { grid-template-columns: 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .modal-overlay { padding: 8px; }
+    .tabs { padding: 8px 12px 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- WORKSPACE SWITCHER -->
+<div class="ws-bar" id="ws-bar">
+  <!-- generat dinamic -->
+  <button class="ws-add-btn" onclick="openAddWorkspace()" title="Adaugă workspace">＋</button>
+</div>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="ws-name-display">
+    <div class="ws-color-dot" id="ws-color-dot"></div>
+    <span id="ws-name-display">—</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost btn-sm" onclick="openWsSettings()" title="Setări">⚙</button>
+    <button class="btn btn-ghost btn-sm" onclick="syncFromDrive()" title="Încarcă din Drive" style="color:var(--blue);border-color:var(--blue)">⬇</button>
+    <button class="btn btn-ghost btn-sm" onclick="syncToDrive()" title="Salvează în Drive" style="color:var(--green);border-color:var(--green)">☁</button>
+    <button class="btn btn-primary btn-sm" onclick="openAddClient()">+ Client</button>
+  </div>
+</header>
+
+<!-- INNER TABS -->
+<div class="tabs" id="inner-tabs">
+  <div class="tab active" data-tab="clienti" onclick="switchInnerTab('clienti',this)" id="tab-btn-clienti">Clienți</div>
+  <div class="tab" data-tab="remindere" onclick="switchInnerTab('remindere',this)">Follow-up <span id="reminder-count-badge"></span></div>
+  <div class="tab" data-tab="propuneri" onclick="switchInnerTab('propuneri',this)" id="tab-btn-propuneri">Propuneri</div>
+  <div class="tab" id="tab-btn-taskuri" data-tab="taskuri" onclick="switchInnerTab('taskuri',this)" style="display:none">✅ Taskuri <span id="tasks-count-badge"></span></div>
+  <div class="tab" data-tab="setari" onclick="switchInnerTab('setari',this)">Setări Email</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TAB: CLIENTI -->
+  <div id="tab-clienti">
+    <div class="stats-bar" id="stats-bar"></div>
+    <div class="filters" id="media-filters">
+      <input type="text" class="search-box" placeholder="🔍 Caută client..." id="search-input" oninput="renderClients()">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">Toți</button>
+      <button class="filter-btn" data-filter="OOH" onclick="setFilter('OOH',this)">OOH</button>
+      <button class="filter-btn" data-filter="Radio" onclick="setFilter('Radio',this)">Radio</button>
+      <button class="filter-btn" data-filter="Indoor" onclick="setFilter('Indoor',this)">Indoor</button>
+      <button class="filter-btn" data-filter="DOOH" onclick="setFilter('DOOH',this)">DOOH</button>
+      <button class="filter-btn" data-filter="Digital Van" onclick="setFilter('Digital Van',this)">Digital Van</button>
+    </div>
+    <div class="clients-grid" id="clients-grid"></div>
+  </div>
+
+  <!-- TAB: REMINDERE -->
+  <div id="tab-remindere" style="display:none">
+    <div class="section-title">
+      Follow-up-uri active
+      <button class="btn btn-sm btn-ghost" onclick="checkAndSendReminders()">📧 Trimite remindere</button>
+    </div>
+    <div class="reminder-list" id="reminder-list"></div>
+  </div>
+
+  <!-- TAB: PROPUNERI -->
+  <div id="tab-propuneri" style="display:none">
+    <div class="section-title">Propuneri trimise</div>
+    <div style="overflow-x:auto">
+      <table class="propuneri-table">
+        <thead><tr><th>Client</th><th>Medii</th><th>Valoare</th><th>Data</th><th>Status</th><th>Ultima notă</th></tr></thead>
+        <tbody id="propuneri-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: TASKURI (doar workspace Personal) -->
+  <div id="tab-taskuri" style="display:none">
+    <div class="section-title">
+      Taskuri & Remindere personale
+      <button class="btn btn-sm btn-primary" onclick="openAddTask()">+ Task</button>
+    </div>
+    <div id="tasks-list"></div>
+  </div>
+
+  <!-- TAB: SETARI -->
+  <div id="tab-setari" style="display:none">
+    <div class="config-box">
+      <div class="config-title">
+        <div class="config-status" id="emailjs-status" style="background:var(--red)"></div>
+        EmailJS — reminder-e automate
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.6">
+        Fiecare workspace are propriile chei EmailJS și adresa de email.<br>
+        <a href="https://emailjs.com" target="_blank" style="color:var(--purple-light)">emailjs.com</a> → cont gratuit → Service Gmail → Template → copiază cheile.
+      </p>
+      <div class="form-group"><label class="form-label">Public Key</label><input type="text" class="form-input" id="ejs-public-key" placeholder="user_..." oninput="saveEmailJSConfig()"></div>
+      <div class="form-group"><label class="form-label">Service ID</label><input type="text" class="form-input" id="ejs-service-id" placeholder="service_..." oninput="saveEmailJSConfig()"></div>
+      <div class="form-group"><label class="form-label">Template ID</label><input type="text" class="form-input" id="ejs-template-id" placeholder="template_..." oninput="saveEmailJSConfig()"></div>
+      <div class="form-group"><label class="form-label">Email reminder (al tău)</label><input type="email" class="form-input" id="ejs-to-email" oninput="saveEmailJSConfig()"></div>
+      <button class="btn btn-primary btn-sm" onclick="testEmail()">Trimite email de test</button>
+    </div>
+    <div class="config-box">
+      <div class="config-title">📦 Export / Import</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Export/import doar pentru workspace-ul curent.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="exportData()">⬇ Export JSON</button>
+        <label class="btn btn-ghost btn-sm" style="cursor:pointer">⬆ Import JSON<input type="file" accept=".json" style="display:none" onchange="importData(event)"></label>
+        <button class="btn btn-danger btn-sm" onclick="clearAllData()">🗑 Șterge clienți</button>
+      </div>
+    </div>
+    <!-- GOOGLE DRIVE SYNC -->
+    <div class="config-box">
+      <div class="config-title">
+        <div class="config-status" id="drive-status" style="background:var(--red)"></div>
+        ☁ Google Drive Sync
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.7">
+        Datele se salvează automat în Google Drive — aceleași date pe orice device.<br>
+        <strong style="color:var(--text)">Setup (o singură dată, 5 min):</strong><br>
+        1) Mergi la <a href="https://script.google.com" target="_blank" style="color:var(--purple-light)">script.google.com</a> → proiect nou<br>
+        2) Șterge codul existent și copiază scriptul de mai jos<br>
+        3) Deploy → New Deployment → Web App → Execute as: Me → Who has access: Anyone → Deploy<br>
+        4) Copiezi URL-ul și îl pui în câmpul de mai jos
+      </p>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;font-weight:600">Script Google Apps Script:</div>
+        <pre id="apps-script-code" style="font-size:10px;color:var(--green);line-height:1.5;white-space:pre-wrap;word-break:break-all;font-family:monospace;max-height:160px;overflow-y:auto"></pre>
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="copyAppsScript()">📋 Copiază scriptul</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">URL Web App (după Deploy)</label>
+        <input type="text" class="form-input" id="drive-webapp-url" placeholder="https://script.google.com/macros/s/.../exec" oninput="saveDriveConfig()">
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">
+        <button class="btn btn-primary btn-sm" onclick="syncToDrive()">☁ Salvează în Drive acum</button>
+        <button class="btn btn-ghost btn-sm" onclick="syncFromDrive()">⬇ Încarcă din Drive</button>
+        <span id="drive-sync-status" style="font-size:11px;color:var(--text-dim)"></span>
+      </div>
+    </div>
+
+    <div class="config-box" id="ws-danger-zone">
+      <div class="config-title" style="color:var(--red)">⚠ Workspace</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="openEditWorkspace()">✏ Redenumește</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCurrentWorkspace()">🗑 Șterge workspace</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- MODAL: ADD/EDIT CLIENT -->
+<div class="modal-overlay" id="modal-client">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-client-title">Client nou</div>
+      <button class="close-btn" onclick="closeModal('modal-client')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-client-id">
+
+      <!-- FORM STANDARD (toate workspace-urile except Personal) -->
+      <div id="form-standard">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Companie *</label><input type="text" class="form-input" id="f-companie" placeholder="ex: Nordisk Grup"></div>
+          <div class="form-group"><label class="form-label">Persoană contact</label><input type="text" class="form-input" id="f-contact" placeholder="Nume, funcție"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Telefon</label><input type="text" class="form-input" id="f-telefon" placeholder="+40 7xx xxx xxx"></div>
+          <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="f-email" placeholder="contact@firma.ro"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Status</label>
+          <select class="form-select" id="f-status">
+            <option value="lead">🔵 Lead</option>
+            <option value="oferta">📄 Ofertă trimisă</option>
+            <option value="negociere">🟡 Negociere</option>
+            <option value="castigat">✅ Câștigat</option>
+            <option value="pierdut">❌ Pierdut</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Medii vizate</label><div class="media-grid" id="media-grid"></div></div>
+        <div class="form-group"><label class="form-label">Valoare estimată (€)</label><input type="number" class="form-input" id="f-valoare" placeholder="ex: 5000"></div>
+        <div class="form-group"><label class="form-label">Notă inițială</label><textarea class="form-textarea" id="f-nota" placeholder="Context, ce s-a discutat..."></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Data ofertă trimisă</label><input type="date" class="form-input" id="f-data-oferta"></div>
+          <div class="form-group"><label class="form-label">Următor follow-up</label><input type="date" class="form-input" id="f-followup"></div>
+        </div>
+      </div>
+
+      <!-- FORM PERSONAL (doar workspace Personal) -->
+      <div id="form-personal" style="display:none">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Companie *</label><input type="text" class="form-input" id="fp-companie" placeholder="Numele clientului"></div>
+          <div class="form-group"><label class="form-label">Brand</label><input type="text" class="form-input" id="fp-brand" placeholder="Numele brandului"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Valoare Campanie (€)</label><input type="number" class="form-input" id="fp-valoare-camp" placeholder="ex: 10000"></div>
+          <div class="form-group"><label class="form-label">Desfășurător Medii Vizate</label><input type="text" class="form-input" id="fp-medii" placeholder="ex: OOH + Radio + Indoor"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Status Campanie</label>
+          <select class="form-select" id="fp-status">
+            <option value="activa">🟢 Campanie Activă</option>
+            <option value="incheiata">⚫ Campanie Încheiată</option>
+          </select>
+        </div>
+        <hr class="divider">
+        <div class="section-title" style="margin-bottom:10px">Facturi emise</div>
+
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase">Factura 1</div>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:8px"><label class="form-label">Nr. Factură</label><input type="text" class="form-input" id="fp-fnr1" placeholder="ex: F00001"></div>
+            <div class="form-group" style="margin-bottom:8px"><label class="form-label">Valoare (€)</label><input type="number" class="form-input" id="fp-fval1" placeholder="0"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:0"><label class="form-label">Scadență</label><input type="date" class="form-input" id="fp-fdata1"></div>
+            <div class="form-group" style="margin-bottom:0;display:flex;align-items:flex-end">
+              <label class="media-check" id="fp-fcheck-label1" style="width:100%;justify-content:center"><input type="checkbox" id="fp-fincasat1" onchange="toggleFacturaCheck(1)">✅ Încasată</label>
+            </div>
+          </div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase">Factura 2</div>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:8px"><label class="form-label">Nr. Factură</label><input type="text" class="form-input" id="fp-fnr2" placeholder="ex: F00002"></div>
+            <div class="form-group" style="margin-bottom:8px"><label class="form-label">Valoare (€)</label><input type="number" class="form-input" id="fp-fval2" placeholder="0"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:0"><label class="form-label">Scadență</label><input type="date" class="form-input" id="fp-fdata2"></div>
+            <div class="form-group" style="margin-bottom:0;display:flex;align-items:flex-end">
+              <label class="media-check" id="fp-fcheck-label2" style="width:100%;justify-content:center"><input type="checkbox" id="fp-fincasat2" onchange="toggleFacturaCheck(2)">✅ Încasată</label>
+            </div>
+          </div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase">Factura 3</div>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:8px"><label class="form-label">Nr. Factură</label><input type="text" class="form-input" id="fp-fnr3" placeholder="ex: F00003"></div>
+            <div class="form-group" style="margin-bottom:8px"><label class="form-label">Valoare (€)</label><input type="number" class="form-input" id="fp-fval3" placeholder="0"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:0"><label class="form-label">Scadență</label><input type="date" class="form-input" id="fp-fdata3"></div>
+            <div class="form-group" style="margin-bottom:0;display:flex;align-items:flex-end">
+              <label class="media-check" id="fp-fcheck-label3" style="width:100%;justify-content:center"><input type="checkbox" id="fp-fincasat3" onchange="toggleFacturaCheck(3)">✅ Încasată</label>
+            </div>
+          </div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase">Factura 4</div>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:8px"><label class="form-label">Nr. Factură</label><input type="text" class="form-input" id="fp-fnr4" placeholder="ex: F00004"></div>
+            <div class="form-group" style="margin-bottom:8px"><label class="form-label">Valoare (€)</label><input type="number" class="form-input" id="fp-fval4" placeholder="0"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:0"><label class="form-label">Scadență</label><input type="date" class="form-input" id="fp-fdata4"></div>
+            <div class="form-group" style="margin-bottom:0;display:flex;align-items:flex-end">
+              <label class="media-check" id="fp-fcheck-label4" style="width:100%;justify-content:center"><input type="checkbox" id="fp-fincasat4" onchange="toggleFacturaCheck(4)">✅ Încasată</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-client')">Anulează</button>
+      <button class="btn btn-primary" onclick="saveClient()">Salvează</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CLIENT DETAIL -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal" style="max-width:650px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="detail-title"></div>
+        <div id="detail-subtitle" style="font-size:12px;color:var(--text-muted);margin-top:2px"></div>
+      </div>
+      <button class="close-btn" onclick="closeModal('modal-detail')">×</button>
+    </div>
+    <div class="modal-body" id="detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="detail-delete-btn">🗑 Șterge</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-detail')">Închide</button>
+      <button class="btn btn-primary" id="detail-edit-btn">✏ Editează</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ADD/EDIT WORKSPACE -->
+<div class="modal-overlay" id="modal-workspace">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-ws-title">Workspace nou</div>
+      <button class="close-btn" onclick="closeModal('modal-workspace')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-ws-id">
+      <div class="form-group">
+        <label class="form-label">Nume companie / workspace</label>
+        <input type="text" class="form-input" id="ws-name-input" placeholder="ex: Invent Media, Personal...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Culoare identificare</label>
+        <div class="color-options" id="color-options"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Emoji (opțional)</label>
+        <input type="text" class="form-input" id="ws-emoji-input" placeholder="🏢 🎯 👤 ..." maxlength="4" style="font-size:20px;text-align:center">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-workspace')">Anulează</button>
+      <button class="btn btn-primary" onclick="saveWorkspace()">Salvează</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// CONSTANTE
+// ═══════════════════════════════════════════════════
+const MEDIA_OPTIONS = [
+  { id: 'OOH', label: '🚋 OOH', cls: 'ooh' },
+  { id: 'DOOH', label: '📺 DOOH', cls: 'dooh' },
+  { id: 'Radio', label: '📻 Radio', cls: 'radio' },
+  { id: 'Indoor', label: '🏢 Indoor', cls: 'indoor' },
+  { id: 'Digital Van', label: '🚐 Digital Van', cls: 'digital' },
+  { id: 'Elevator', label: '🛗 Elevator', cls: 'indoor' },
+  { id: 'STB', label: '🚌 STB', cls: 'ooh' },
+  { id: 'Rezidential', label: '🏠 Rezidențial', cls: 'indoor' },
+  { id: 'Metro', label: '🚇 Metro', cls: 'ooh' },
+  { id: 'Bikevertising', label: '🚲 Bikevertising', cls: 'digital' },
+];
+const STATUS_LABELS = { lead:'Lead', oferta:'Ofertă trimisă', negociere:'Negociere', castigat:'Câștigat', pierdut:'Pierdut' };
+const WS_COLORS = ['#5B2D8E','#F47920','#2ECC71','#3498DB','#E74C3C','#F1C40F','#1ABC9C','#9B59B6','#E67E22','#E91E8C'];
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let workspaces = [];   // [{id, name, color, emoji}]
+let activeWsId = null;
+let clients = [];
+let currentFilter = 'all';
+let currentDetailId = null;
+let ejsConfig = {};
+
+// ═══════════════════════════════════════════════════
+// STORAGE HELPERS
+// ═══════════════════════════════════════════════════
+function loadAll() {
+  const raw = localStorage.getItem('crm_workspaces');
+  workspaces = raw ? JSON.parse(raw) : [];
+
+  if (workspaces.length === 0) {
+    // Prima rulare — creăm workspace-urile default
+    workspaces = [
+      { id: 'ws_invent', name: 'Invent Media', color: '#5B2D8E', emoji: '🏢' },
+      { id: 'ws_firma2', name: 'Firma 2', color: '#3498DB', emoji: '🎯' },
+      { id: 'ws_firma3', name: 'Firma 3', color: '#2ECC71', emoji: '💼' },
+      { id: 'ws_personal', name: 'Personal', color: '#F47920', emoji: '👤' },
+    ];
+    saveWorkspaces();
+  }
+
+  const lastWs = localStorage.getItem('crm_active_ws');
+  activeWsId = (lastWs && workspaces.find(w => w.id === lastWs)) ? lastWs : workspaces[0].id;
+
+  loadWorkspace(activeWsId);
+}
+
+function saveWorkspaces() {
+  localStorage.setItem('crm_workspaces', JSON.stringify(workspaces));
+}
+
+function loadWorkspace(wsId) {
+  activeWsId = wsId;
+  localStorage.setItem('crm_active_ws', wsId);
+  const raw = localStorage.getItem('crm_clients_' + wsId);
+  clients = raw ? JSON.parse(raw) : [];
+  loadEmailJSConfig();
+  renderWsBar();
+  renderWsHeader();
+  renderAll();
+  // Arată/ascunde tab Taskuri doar pentru Personal
+  const isPersonal = wsId === 'ws_personal';
+  const taskTab = document.getElementById('tab-btn-taskuri');
+  const propuneriTab = document.getElementById('tab-btn-propuneri');
+  const clientiTab = document.getElementById('tab-btn-clienti');
+  if (taskTab) taskTab.style.display = isPersonal ? '' : 'none';
+  if (propuneriTab) propuneriTab.style.display = isPersonal ? 'none' : '';
+  // Dacă suntem pe Personal și eram pe Propuneri → mergi pe Taskuri
+  if (isPersonal) {
+    const activeTab = document.querySelector('[data-tab].active');
+    if (activeTab && activeTab.dataset.tab === 'propuneri') {
+      switchInnerTab('taskuri', taskTab, true);
+    }
+  }
+  // Dacă nu e Personal și eram pe Taskuri → mergi pe Clienți
+  if (!isPersonal) {
+    const activeTab = document.querySelector('[data-tab].active');
+    if (activeTab && activeTab.dataset.tab === 'taskuri') {
+      switchInnerTab('clienti', clientiTab, true);
+    }
+  }
+  if (isPersonal) { loadTasks(); renderTasks(); updateTasksBadge(); }
+  // Ascunde filtrele pe medii în Personal
+  const mf = document.getElementById('media-filters');
+  if (mf) {
+    [...mf.querySelectorAll('.filter-btn')].forEach(b => b.style.display = isPersonal ? 'none' : '');
+  }
+}
+
+function saveClients() {
+  localStorage.setItem('crm_clients_' + activeWsId, JSON.stringify(clients));
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+// ═══════════════════════════════════════════════════
+// WORKSPACE BAR
+// ═══════════════════════════════════════════════════
+function renderWsBar() {
+  const bar = document.getElementById('ws-bar');
+  const addBtn = bar.querySelector('.ws-add-btn');
+
+  // Curăță tab-urile existente (nu butonul +)
+  [...bar.children].forEach(el => { if (!el.classList.contains('ws-add-btn')) el.remove(); });
+
+  workspaces.forEach(ws => {
+    const today = new Date().toISOString().slice(0,10);
+    const wsClients = JSON.parse(localStorage.getItem('crm_clients_' + ws.id) || '[]');
+    const overdue = wsClients.filter(c => c.followup && c.followup <= today && c.status !== 'castigat' && c.status !== 'pierdut').length;
+
+    const tab = document.createElement('div');
+    tab.className = 'ws-tab' + (ws.id === activeWsId ? ' active' : '');
+    tab.innerHTML = `
+      <div class="ws-dot" style="background:${ws.color}"></div>
+      ${ws.emoji ? ws.emoji + ' ' : ''}${ws.name}
+      ${overdue > 0 ? `<span class="ws-badge">${overdue}</span>` : ''}
+    `;
+    tab.onclick = () => switchWorkspace(ws.id);
+    bar.insertBefore(tab, addBtn);
+  });
+}
+
+function renderWsHeader() {
+  const ws = workspaces.find(w => w.id === activeWsId);
+  if (!ws) return;
+  document.getElementById('ws-color-dot').style.background = ws.color;
+  document.getElementById('ws-name-display').textContent = (ws.emoji ? ws.emoji + ' ' : '') + ws.name;
+  document.title = 'CRM · ' + ws.name;
+}
+
+function switchWorkspace(wsId) {
+  // Salvăm tab-ul inner activ și resetăm filtrul
+  currentFilter = 'all';
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('[data-filter="all"]').classList.add('active');
+  document.getElementById('search-input').value = '';
+
+  // Resetăm inner tabs
+  switchInnerTab('clienti', document.querySelector('[data-tab="clienti"]'), true);
+
+  loadWorkspace(wsId);
+}
+
+function openAddWorkspace() {
+  document.getElementById('modal-ws-title').textContent = 'Workspace nou';
+  document.getElementById('edit-ws-id').value = '';
+  document.getElementById('ws-name-input').value = '';
+  document.getElementById('ws-emoji-input').value = '';
+  buildColorPicker('');
+  openModal('modal-workspace');
+}
+
+function openEditWorkspace() {
+  const ws = workspaces.find(w => w.id === activeWsId);
+  if (!ws) return;
+  document.getElementById('modal-ws-title').textContent = 'Editează workspace';
+  document.getElementById('edit-ws-id').value = ws.id;
+  document.getElementById('ws-name-input').value = ws.name;
+  document.getElementById('ws-emoji-input').value = ws.emoji || '';
+  buildColorPicker(ws.color);
+  openModal('modal-workspace');
+}
+
+function buildColorPicker(selected) {
+  document.getElementById('color-options').innerHTML = WS_COLORS.map(c => `
+    <div class="color-opt ${c === selected ? 'selected' : ''}" style="background:${c}" data-color="${c}" onclick="selectColor(this)"></div>
+  `).join('');
+}
+
+function selectColor(el) {
+  document.querySelectorAll('.color-opt').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function saveWorkspace() {
+  const name = document.getElementById('ws-name-input').value.trim();
+  if (!name) { showToast('Scrie un nume!', 'error'); return; }
+  const color = document.querySelector('.color-opt.selected')?.dataset.color || '#5B2D8E';
+  const emoji = document.getElementById('ws-emoji-input').value.trim();
+  const editId = document.getElementById('edit-ws-id').value;
+
+  if (editId) {
+    const idx = workspaces.findIndex(w => w.id === editId);
+    if (idx >= 0) { workspaces[idx].name = name; workspaces[idx].color = color; workspaces[idx].emoji = emoji; }
+  } else {
+    if (workspaces.length >= 8) { showToast('Maximum 8 workspace-uri', 'error'); return; }
+    workspaces.push({ id: 'ws_' + uid(), name, color, emoji });
+  }
+
+  saveWorkspaces();
+  renderWsBar();
+  renderWsHeader();
+  closeModal('modal-workspace');
+  showToast('✅ Workspace salvat', 'success');
+}
+
+function deleteCurrentWorkspace() {
+  if (workspaces.length <= 1) { showToast('Nu poți șterge singurul workspace!', 'error'); return; }
+  const ws = workspaces.find(w => w.id === activeWsId);
+  if (!confirm(`Ștergi workspace-ul "${ws.name}" și toți clienții din el?`)) return;
+  localStorage.removeItem('crm_clients_' + activeWsId);
+  localStorage.removeItem('crm_emailjs_' + activeWsId);
+  workspaces = workspaces.filter(w => w.id !== activeWsId);
+  saveWorkspaces();
+  switchWorkspace(workspaces[0].id);
+  showToast('Workspace șters', 'info');
+}
+
+function openWsSettings() {
+  switchInnerTab('setari', document.querySelector('[data-tab="setari"]'));
+}
+
+// ═══════════════════════════════════════════════════
+// INNER TABS
+// ═══════════════════════════════════════════════════
+function switchInnerTab(name, el, silent) {
+  ['clienti','remindere','propuneri','taskuri','setari'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t === name ? '' : 'none';
+  });
+  document.querySelectorAll('[data-tab]').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  if (!silent) {
+    if (name === 'remindere') renderReminders();
+    if (name === 'propuneri') renderPropuneri();
+    if (name === 'taskuri') renderTasks();
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════
+function renderAll() {
+  renderStats();
+  renderClients();
+  renderReminders();
+  renderPropuneri();
+  updateReminderBadge();
+}
+
+function renderStats() {
+  if (activeWsId === 'ws_personal') {
+    renderPersonalStats();
+  } else {
+    renderStandardStats();
+  }
+}
+
+function renderStandardStats() {
+  const total = clients.length;
+  const oferte = clients.filter(c => c.status==='oferta'||c.status==='negociere').length;
+  const castigate = clients.filter(c => c.status==='castigat').length;
+  const today = new Date().toISOString().slice(0,10);
+  const overdue = clients.filter(c => c.followup && c.followup < today && c.status!=='castigat' && c.status!=='pierdut').length;
+  document.getElementById('stats-bar').innerHTML = `
+    <div class="stat-card"><div class="stat-value" style="color:var(--purple-light)">${total}</div><div class="stat-label">Clienți</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--blue)">${oferte}</div><div class="stat-label">Oferte active</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--green)">${castigate}</div><div class="stat-label">Câștigate</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:${overdue>0?'var(--red)':'var(--text-muted)'}">${overdue}</div><div class="stat-label">Întârziate</div></div>
+  `;
+}
+
+function renderPersonalStats() {
+  const activi = clients.filter(c => c.status === 'activa').length;
+  const valContracte = clients.filter(c => c.status === 'incheiata').reduce((s,c) => s + (parseFloat(c.valoreCampanie)||0), 0);
+  let nrNeincasate = 0, valNeincasate = 0;
+  clients.forEach(c => {
+    (c.facturi||[]).forEach(f => {
+      if (!f.incasata && f.nr) {
+        nrNeincasate++;
+        valNeincasate += parseFloat(f.valoare)||0;
+      }
+    });
+  });
+  document.getElementById('stats-bar').innerHTML = `
+    <div class="stat-card"><div class="stat-value" style="color:var(--green)">${activi}</div><div class="stat-label">Clienți Activi</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--purple-light);font-size:18px">€${valContracte.toLocaleString()}</div><div class="stat-label">Val. Contracte Încheiate</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:${nrNeincasate>0?'var(--red)':'var(--text-muted)'}">${nrNeincasate}</div><div class="stat-label">Facturi Neîncasate</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:${valNeincasate>0?'var(--red)':'var(--text-muted)'};font-size:18px">€${valNeincasate.toLocaleString()}</div><div class="stat-label">Val. Neîncasată</div></div>
+  `;
+}
+
+function setFilter(filter, el) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderClients();
+}
+
+function renderClients() {
+  const search = (document.getElementById('search-input').value || '').toLowerCase();
+  const isPersonal = activeWsId === 'ws_personal';
+
+  let filtered = clients.filter(c =>
+    (!search || c.companie.toLowerCase().includes(search) || (c.contact||'').toLowerCase().includes(search) || (c.brand||'').toLowerCase().includes(search)) &&
+    (isPersonal || currentFilter === 'all' || (c.medii && c.medii.includes(currentFilter)))
+  );
+
+  if (!isPersonal) {
+    filtered.sort((a,b) => {
+      if (a.followup && b.followup) return a.followup.localeCompare(b.followup);
+      if (a.followup) return -1; if (b.followup) return 1; return 0;
+    });
+  }
+
+  const grid = document.getElementById('clients-grid');
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📋</div><div class="empty-title">Niciun client</div><div class="empty-sub">Apasă "+ Client" pentru a adăuga</div></div>`;
+    return;
+  }
+
+  if (isPersonal) {
+    grid.innerHTML = filtered.map(c => renderPersonalCard(c)).join('');
+  } else {
+    grid.innerHTML = filtered.map(c => renderStandardCard(c)).join('');
+  }
+}
+
+function renderStandardCard(c) {
+  const fcls = getFollowupClass(c.followup);
+  const flbl = c.followup ? formatDate(c.followup) : '—';
+  const lastNote = c.notes && c.notes.length > 0 ? c.notes[c.notes.length-1].text : '';
+  const mediaTags = (c.medii||[]).map(m => { const o=MEDIA_OPTIONS.find(x=>x.id===m); return `<span class="media-tag ${o?o.cls:''}">${m}</span>`; }).join('');
+  return `
+  <div class="client-card status-${c.status}" onclick="openDetail('${c.id}')">
+    <div class="card-header">
+      <div><div class="client-name">${c.companie}</div><div class="client-contact">${c.contact||''}</div></div>
+      <span class="status-badge badge-${c.status}">${STATUS_LABELS[c.status]}</span>
+    </div>
+    <div class="media-tags">${mediaTags}</div>
+    ${lastNote ? `<div class="last-note">${lastNote}</div>` : ''}
+    <div class="card-footer">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:7px;flex:1;min-width:0">
+        <span class="followup-date ${fcls}">${c.followup ? '📅 '+flbl : '⚪ Fără follow-up'}</span>
+        ${c.telefon ? `<a href="tel:${c.telefon}" onclick="event.stopPropagation()" style="color:var(--green);font-size:11px;text-decoration:none" title="${c.telefon}">📞 ${c.telefon}</a>` : ''}
+        ${c.email ? `<a href="mailto:${c.email}" onclick="event.stopPropagation()" style="color:var(--blue);font-size:11px;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px" title="${c.email}">✉ ${c.email}</a>` : ''}
+      </div>
+      ${c.valoare ? `<span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--orange);flex-shrink:0">€${Number(c.valoare).toLocaleString()}</span>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderPersonalCard(c) {
+  const facturi = c.facturi || [];
+  const totalFacturat = facturi.reduce((s,f) => s + (parseFloat(f.valoare)||0), 0);
+  const totalIncasat = facturi.filter(f=>f.incasata).reduce((s,f) => s + (parseFloat(f.valoare)||0), 0);
+  const neincasate = facturi.filter(f=>!f.incasata && f.nr);
+  const today = new Date().toISOString().slice(0,10);
+
+  // Scadente urgente
+  const scadente = facturi.filter(f=>!f.incasata && f.scadenta && f.nr);
+  let scadentaHtml = '';
+  scadente.forEach(f => {
+    let cls='', label=formatDate(f.scadenta);
+    if(f.scadenta < today) { cls='color:var(--red)'; label='⚠ '+label; }
+    else if(f.scadenta === today) { cls='color:var(--yellow)'; label='🔔 Azi'; }
+    scadentaHtml += `<span style="font-size:10px;${cls}">📅 ${f.nr}: ${label}</span> `;
+  });
+
+  const statusColor = c.status === 'activa' ? 'var(--green)' : 'var(--text-dim)';
+  const statusLabel = c.status === 'activa' ? '🟢 Activă' : '⚫ Încheiată';
+
+  return `
+  <div class="client-card" style="border-left:3px solid ${statusColor}" onclick="openDetail('${c.id}')">
+    <div class="card-header">
+      <div>
+        <div class="client-name">${c.companie}</div>
+        <div class="client-contact" style="color:var(--orange)">${c.brand||''}</div>
+      </div>
+      <span class="status-badge" style="background:${c.status==='activa'?'var(--green-dim)':'var(--surface3)'};color:${statusColor}">${statusLabel}</span>
+    </div>
+    ${c.mediiText ? `<div style="font-size:11px;color:var(--text-muted);margin:6px 0">${c.mediiText}</div>` : ''}
+    <div style="display:flex;gap:10px;margin:8px 0;flex-wrap:wrap">
+      ${c.valoreCampanie ? `<span style="font-size:11px;color:var(--text-muted)">Campanie: <strong style="color:var(--orange);font-family:'DM Mono',monospace">€${Number(c.valoreCampanie).toLocaleString()}</strong></span>` : ''}
+      ${totalFacturat > 0 ? `<span style="font-size:11px;color:var(--text-muted)">Facturat: <strong style="color:var(--blue);font-family:'DM Mono',monospace">€${totalFacturat.toLocaleString()}</strong></span>` : ''}
+      ${totalIncasat > 0 ? `<span style="font-size:11px;color:var(--text-muted)">Încasat: <strong style="color:var(--green);font-family:'DM Mono',monospace">€${totalIncasat.toLocaleString()}</strong></span>` : ''}
+    </div>
+    ${facturi.length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
+      ${facturi.map(f => `<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:${f.incasata?'var(--green-dim)':'var(--surface3)'};color:${f.incasata?'var(--green)':'var(--text-muted)'};text-decoration:${f.incasata?'line-through':'none'};opacity:${f.incasata?'0.6':'1'}">${f.nr}${f.valoare?' €'+Number(f.valoare).toLocaleString():''}</span>`).join('')}
+    </div>` : ''}
+    ${scadentaHtml ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${scadentaHtml}</div>` : ''}
+    ${neincasate.length > 0 ? `<div style="font-size:10px;color:var(--red);margin-top:4px">⚠ ${neincasate.length} factură neîncasată</div>` : ''}
+  </div>`;
+}
+
+function renderReminders() {
+  const today = new Date().toISOString().slice(0,10);
+  const in3 = new Date(Date.now()+3*86400000).toISOString().slice(0,10);
+  const tomorrow = new Date(Date.now()+86400000).toISOString().slice(0,10);
+  const withFollowup = clients.filter(c => c.followup && c.status!=='castigat' && c.status!=='pierdut').sort((a,b)=>a.followup.localeCompare(b.followup));
+  const list = document.getElementById('reminder-list');
+
+  // Taskuri finalizate din Personal
+  loadTasks();
+  const doneTasks = tasks.filter(t => t.done).sort((a,b) => (b.doneAt||'').localeCompare(a.doneAt||''));
+
+  let html = '';
+
+  if (withFollowup.length === 0 && doneTasks.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🎉</div><div class="empty-title">Totul la zi!</div><div class="empty-sub">Niciun follow-up și niciun task finalizat</div></div>`;
+    return;
+  }
+
+  if (withFollowup.length > 0) {
+    html += `<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">📅 Follow-up clienți (${withFollowup.length})</div>`;
+    html += withFollowup.map(c => {
+      let cls='ok', label='';
+      if (c.followup < today) { cls='overdue'; label=`⚠ Întârziat ${daysDiff(c.followup,today)}z`; }
+      else if (c.followup === today) { cls='soon'; label='🔔 Azi!'; }
+      else if (c.followup === tomorrow) { cls='soon'; label='⏰ Mâine'; }
+      else if (c.followup <= in3) { cls='soon'; label='În 2-3 zile'; }
+      else { label = formatDate(c.followup); }
+      const lastNote = c.notes && c.notes.length ? c.notes[c.notes.length-1].text : 'Fără note';
+      return `<div class="reminder-item ${cls}" onclick="openDetail('${c.id}')">
+        <div class="reminder-indicator"></div>
+        <div class="reminder-info"><div class="reminder-client">${c.companie}</div><div class="reminder-note">${lastNote.slice(0,70)}${lastNote.length>70?'...':''}</div></div>
+        <div><div class="reminder-date">${label}</div><div style="font-size:10px;color:var(--text-dim);text-align:right">${(c.medii||[]).join(', ')}</div></div>
+      </div>`;
+    }).join('');
+  }
+
+  if (doneTasks.length > 0) {
+    html += `<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 10px">✅ Taskuri finalizate (${doneTasks.length})</div>`;
+    html += doneTasks.map(t => {
+      const cat = TASK_CATEGORIES.find(c => c.id === t.category) || TASK_CATEGORIES[0];
+      const doneDate = t.doneAt ? new Date(t.doneAt).toLocaleDateString('ro-RO',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+      return `<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:var(--radius);padding:10px 14px;margin-bottom:6px;opacity:0.7;display:flex;align-items:center;gap:12px">
+        <span style="font-size:16px">✅</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;text-decoration:line-through;color:var(--text-dim)">${t.title}</div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:2px">
+            <span style="color:${cat.color}">${cat.label}</span>
+            ${t.note ? ' · '+t.note : ''}
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--text-dim);text-align:right;flex-shrink:0">
+          Finalizat<br>${doneDate}
+        </div>
+        <button onclick="deleteTask('${t.id}')" style="background:transparent;border:none;color:var(--text-dim);cursor:pointer;font-size:13px;padding:2px" title="Șterge">🗑</button>
+      </div>`;
+    }).join('');
+  }
+
+  list.innerHTML = html;
+}
+
+function renderPropuneri() {
+  const tbody = document.getElementById('propuneri-tbody');
+  const withOferta = clients.filter(c => c.dataOferta || ['oferta','negociere','castigat'].includes(c.status));
+  if (withOferta.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">Nicio propunere</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = withOferta.map(c => `
+    <tr onclick="openDetail('${c.id}')" style="cursor:pointer">
+      <td><strong>${c.companie}</strong><br><span style="font-size:10px;color:var(--text-muted)">${c.contact||''}</span></td>
+      <td><div style="display:flex;flex-wrap:wrap;gap:3px">${(c.medii||[]).map(m=>`<span class="media-tag ${(MEDIA_OPTIONS.find(o=>o.id===m)||{cls:''}).cls}">${m}</span>`).join('')}</div></td>
+      <td style="font-family:'DM Mono',monospace;color:var(--orange)">${c.valoare?'€'+Number(c.valoare).toLocaleString():'—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px">${c.dataOferta?formatDate(c.dataOferta):'—'}</td>
+      <td><span class="status-badge badge-${c.status}">${STATUS_LABELS[c.status]}</span></td>
+      <td style="color:var(--text-muted);font-size:11px">${c.notes&&c.notes.length?c.notes[c.notes.length-1].text.slice(0,50)+'...':'—'}</td>
+    </tr>`).join('');
+}
+
+function updateReminderBadge() {
+  const today = new Date().toISOString().slice(0,10);
+  const n = clients.filter(c => c.followup && c.followup <= today && c.status!=='castigat' && c.status!=='pierdut').length;
+  const badge = document.getElementById('reminder-count-badge');
+  badge.innerHTML = n > 0 ? ` <span style="background:var(--red);color:#fff;border-radius:10px;padding:1px 5px;font-size:10px;font-weight:700">${n}</span>` : '';
+}
+
+// ═══════════════════════════════════════════════════
+// ADD / EDIT CLIENT
+// ═══════════════════════════════════════════════════
+function openAddClient() {
+  document.getElementById('modal-client-title').textContent = 'Client nou';
+  document.getElementById('edit-client-id').value = '';
+  if (activeWsId === 'ws_personal') {
+    showPersonalForm();
+    ['fp-companie','fp-brand','fp-valoare-camp','fp-medii'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('fp-status').value = 'activa';
+    [1,2,3,4].forEach(i => {
+      ['fp-fnr','fp-fval','fp-fdata'].forEach(p => { const el=document.getElementById(p+i); if(el) el.value=''; });
+      const cb = document.getElementById('fp-fincasat'+i);
+      const lbl = document.getElementById('fp-fcheck-label'+i);
+      if(cb) cb.checked = false;
+      if(lbl) lbl.classList.remove('checked');
+    });
+  } else {
+    showStandardForm();
+    ['edit-client-id','f-companie','f-contact','f-telefon','f-email','f-valoare','f-nota','f-data-oferta','f-followup'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('f-status').value = 'lead';
+    buildMediaGrid([]);
+  }
+  openModal('modal-client');
+}
+
+function showPersonalForm() {
+  document.getElementById('form-standard').style.display = 'none';
+  document.getElementById('form-personal').style.display = '';
+}
+
+function showStandardForm() {
+  document.getElementById('form-standard').style.display = '';
+  document.getElementById('form-personal').style.display = 'none';
+}
+
+function toggleFacturaCheck(i) {
+  const cb = document.getElementById('fp-fincasat'+i);
+  const lbl = document.getElementById('fp-fcheck-label'+i);
+  if(lbl) lbl.classList.toggle('checked', cb.checked);
+}
+
+function buildMediaGrid(selected) {
+  document.getElementById('media-grid').innerHTML = MEDIA_OPTIONS.map(m => `
+    <label class="media-check ${selected.includes(m.id)?'checked':''}" data-id="${m.id}">
+      <input type="checkbox" ${selected.includes(m.id)?'checked':''} onchange="this.closest('.media-check').classList.toggle('checked',this.checked)">
+      ${m.label}
+    </label>`).join('');
+}
+
+function getSelectedMedia() {
+  return [...document.querySelectorAll('.media-check.checked')].map(el => el.dataset.id);
+}
+
+function saveClient() {
+  const id = document.getElementById('edit-client-id').value || uid();
+  const existingIdx = clients.findIndex(c => c.id === id);
+  let clientData;
+
+  if (activeWsId === 'ws_personal') {
+    const companie = document.getElementById('fp-companie').value.trim();
+    if (!companie) { showToast('Completează numele clientului!','error'); return; }
+    const facturi = [1,2,3,4].map(i => ({
+      nr: (document.getElementById('fp-fnr'+i)||{}).value || '',
+      valoare: (document.getElementById('fp-fval'+i)||{}).value || '',
+      scadenta: (document.getElementById('fp-fdata'+i)||{}).value || '',
+      incasata: (document.getElementById('fp-fincasat'+i)||{}).checked || false
+    })).filter(f => f.nr || f.valoare);
+    clientData = {
+      id, companie,
+      brand: document.getElementById('fp-brand').value.trim(),
+      valoreCampanie: document.getElementById('fp-valoare-camp').value,
+      mediiText: document.getElementById('fp-medii').value.trim(),
+      status: document.getElementById('fp-status').value,
+      facturi,
+      isPersonal: true,
+      notes: existingIdx >= 0 ? clients[existingIdx].notes || [] : [],
+      createdAt: existingIdx >= 0 ? clients[existingIdx].createdAt : new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+  } else {
+    const companie = document.getElementById('f-companie').value.trim();
+    if (!companie) { showToast('Completează numele companiei!','error'); return; }
+    const nota = document.getElementById('f-nota').value.trim();
+    clientData = {
+      id, companie,
+      contact: document.getElementById('f-contact').value.trim(),
+      telefon: document.getElementById('f-telefon').value.trim(),
+      email: document.getElementById('f-email').value.trim(),
+      status: document.getElementById('f-status').value,
+      medii: getSelectedMedia(),
+      valoare: document.getElementById('f-valoare').value,
+      dataOferta: document.getElementById('f-data-oferta').value,
+      followup: document.getElementById('f-followup').value,
+      notes: existingIdx >= 0 ? clients[existingIdx].notes || [] : [],
+      createdAt: existingIdx >= 0 ? clients[existingIdx].createdAt : new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    if (nota) clientData.notes.push({ date: new Date().toISOString(), text: nota });
+  }
+
+  if (existingIdx >= 0) clients[existingIdx] = clientData; else clients.push(clientData);
+  saveClients();
+  renderAll();
+  renderWsBar();
+  closeModal('modal-client');
+  showToast(existingIdx >= 0 ? '✅ Actualizat' : '✅ Adăugat', 'success');
+}
+
+// ═══════════════════════════════════════════════════
+// DETAIL MODAL
+// ═══════════════════════════════════════════════════
+function openDetail(id) {
+  const c = clients.find(x => x.id === id);
+  if (!c) return;
+  currentDetailId = id;
+
+  if (c.isPersonal) {
+    openPersonalDetail(c);
+    return;
+  }
+
+  document.getElementById('detail-title').textContent = c.companie;
+  const subtitleParts = [];
+  if (c.contact) subtitleParts.push(`<span>${c.contact}</span>`);
+  if (c.telefon) subtitleParts.push(`<a href="tel:${c.telefon}" style="color:var(--green);text-decoration:none">📞 ${c.telefon}</a>`);
+  if (c.email) subtitleParts.push(`<a href="mailto:${c.email}" style="color:var(--blue);text-decoration:none">✉ ${c.email}</a>`);
+  document.getElementById('detail-subtitle').innerHTML = subtitleParts.join(' · ');
+
+  const mediaTags = (c.medii||[]).map(m => { const o=MEDIA_OPTIONS.find(x=>x.id===m); return `<span class="media-tag ${o?o.cls:''}">${m}</span>`; }).join('');
+  const notes = (c.notes||[]).slice().reverse().map(n => `
+    <div class="note-item">
+      <div class="note-date">${new Date(n.date).toLocaleDateString('ro-RO',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+      <div class="note-text">${n.text}</div>
+    </div>`).join('');
+
+  document.getElementById('detail-body').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <span class="status-badge badge-${c.status}" style="font-size:12px;padding:4px 10px">${STATUS_LABELS[c.status]}</span>
+      ${c.valoare ? `<span style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:var(--orange)">€${Number(c.valoare).toLocaleString()}</span>` : ''}
+    </div>
+    <div class="media-tags" style="margin-bottom:12px">${mediaTags}</div>
+    ${c.followup ? `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:12px;font-size:12px">
+      📅 Follow-up: <strong>${formatDate(c.followup)}</strong>
+      <span class="followup-date ${getFollowupClass(c.followup)}" style="margin-left:8px">${getFollowupLabel(c.followup)}</span>
+    </div>` : ''}
+    <hr class="divider">
+    <div class="section-title">
+      Note & Interacțiuni
+      <button class="btn btn-sm btn-primary" onclick="addNote('${id}')">+ Adaugă notă</button>
+    </div>
+    <div id="note-new-area-${id}" style="display:none;margin-bottom:10px">
+      <textarea class="form-textarea" id="new-note-text-${id}" placeholder="Ce s-a discutat, ce urmează..."></textarea>
+      <div style="display:flex;gap:7px;margin-top:7px;flex-wrap:wrap">
+        <input type="date" class="form-input" id="new-followup-${id}" style="flex:1;min-width:130px">
+        <select class="form-select" id="new-status-${id}" style="flex:1;min-width:130px">
+          <option value="">— Schimbă status —</option>
+          <option value="lead">Lead</option>
+          <option value="oferta">Ofertă trimisă</option>
+          <option value="negociere">Negociere</option>
+          <option value="castigat">Câștigat</option>
+          <option value="pierdut">Pierdut</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="saveNote('${id}')">Salvează</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('note-new-area-${id}').style.display='none'">✕</button>
+      </div>
+    </div>
+    <div class="notes-list">${notes || '<div style="color:var(--text-dim);font-size:12px;text-align:center;padding:16px">Nicio notă. Adaugă prima interacțiune!</div>'}</div>
+  `;
+
+  document.getElementById('detail-edit-btn').onclick = () => { closeModal('modal-detail'); editClient(id); };
+  document.getElementById('detail-delete-btn').onclick = () => deleteClient(id);
+  openModal('modal-detail');
+}
+
+function addNote(id) {
+  document.getElementById(`note-new-area-${id}`).style.display = 'block';
+  document.getElementById(`new-note-text-${id}`).focus();
+}
+
+function saveNote(id) {
+  const text = document.getElementById(`new-note-text-${id}`).value.trim();
+  if (!text) { showToast('Scrie ceva în notă!','error'); return; }
+  const idx = clients.findIndex(c => c.id === id);
+  if (idx < 0) return;
+  clients[idx].notes = clients[idx].notes || [];
+  clients[idx].notes.push({ date: new Date().toISOString(), text });
+  const nf = document.getElementById(`new-followup-${id}`).value;
+  if (nf) clients[idx].followup = nf;
+  const ns = document.getElementById(`new-status-${id}`).value;
+  if (ns) clients[idx].status = ns;
+  clients[idx].updatedAt = new Date().toISOString();
+  saveClients();
+  renderAll();
+  renderWsBar();
+  openDetail(id);
+  showToast('✅ Notă salvată','success');
+}
+
+function editClient(id) {
+  const c = clients.find(x => x.id === id);
+  if (!c) return;
+  if (c.isPersonal) { editPersonalClient(id); return; }
+  document.getElementById('modal-client-title').textContent = 'Editează client';
+  document.getElementById('edit-client-id').value = id;
+  showStandardForm();
+  document.getElementById('f-companie').value = c.companie;
+  document.getElementById('f-contact').value = c.contact||'';
+  document.getElementById('f-telefon').value = c.telefon||'';
+  document.getElementById('f-email').value = c.email||'';
+  document.getElementById('f-status').value = c.status;
+  document.getElementById('f-valoare').value = c.valoare||'';
+  document.getElementById('f-nota').value = '';
+  document.getElementById('f-data-oferta').value = c.dataOferta||'';
+  document.getElementById('f-followup').value = c.followup||'';
+  buildMediaGrid(c.medii||[]);
+  openModal('modal-client');
+}
+
+function deleteClient(id) {
+  if (!confirm('Ștergi clientul? Acțiunea nu poate fi anulată.')) return;
+  clients = clients.filter(c => c.id !== id);
+  saveClients();
+  renderAll();
+  renderWsBar();
+  closeModal('modal-detail');
+  showToast('Client șters','info');
+}
+
+// ═══════════════════════════════════════════════════
+// EMAILJS (per workspace)
+// ═══════════════════════════════════════════════════
+function loadEmailJSConfig() {
+  const raw = localStorage.getItem('crm_emailjs_' + activeWsId);
+  ejsConfig = raw ? JSON.parse(raw) : {};
+  const pk = document.getElementById('ejs-public-key');
+  if (pk) {
+    pk.value = ejsConfig.publicKey||'';
+    document.getElementById('ejs-service-id').value = ejsConfig.serviceId||'';
+    document.getElementById('ejs-template-id').value = ejsConfig.templateId||'';
+    document.getElementById('ejs-to-email').value = ejsConfig.toEmail||'radunicolaeserban@gmail.com';
+    updateEmailStatus();
+  }
+}
+
+function saveEmailJSConfig() {
+  ejsConfig = {
+    publicKey: document.getElementById('ejs-public-key').value.trim(),
+    serviceId: document.getElementById('ejs-service-id').value.trim(),
+    templateId: document.getElementById('ejs-template-id').value.trim(),
+    toEmail: document.getElementById('ejs-to-email').value.trim()
+  };
+  localStorage.setItem('crm_emailjs_' + activeWsId, JSON.stringify(ejsConfig));
+  updateEmailStatus();
+}
+
+function updateEmailStatus() {
+  const ok = ejsConfig.publicKey && ejsConfig.serviceId && ejsConfig.templateId;
+  const el = document.getElementById('emailjs-status');
+  if (el) el.style.background = ok ? 'var(--green)' : 'var(--red)';
+}
+
+async function sendReminderEmail(client, daysLabel) {
+  if (!ejsConfig.publicKey||!ejsConfig.serviceId||!ejsConfig.templateId) return false;
+  const lastNote = client.notes&&client.notes.length ? client.notes[client.notes.length-1].text : 'Fără note';
+  const ws = workspaces.find(w => w.id === activeWsId);
+  try {
+    const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        service_id: ejsConfig.serviceId, template_id: ejsConfig.templateId, user_id: ejsConfig.publicKey,
+        template_params: {
+          to_email: ejsConfig.toEmail||'radunicolaeserban@gmail.com',
+          workspace: ws ? ws.name : '',
+          client_name: client.companie, contact: client.contact||'—',
+          status: STATUS_LABELS[client.status], medii: (client.medii||[]).join(', '),
+          followup_date: formatDate(client.followup), followup_label: daysLabel,
+          last_note: lastNote, valoare: client.valoare ? '€'+Number(client.valoare).toLocaleString() : 'Nespecificată'
+        }
+      })
+    });
+    return res.status === 200;
+  } catch(e) { return false; }
+}
+
+async function checkAndSendReminders() {
+  const today = new Date().toISOString().slice(0,10);
+  const tomorrow = new Date(Date.now()+86400000).toISOString().slice(0,10);
+  const due = clients.filter(c => c.followup && c.followup <= tomorrow && c.status!=='castigat' && c.status!=='pierdut');
+  if (due.length === 0) { showToast('Niciun follow-up pentru azi/mâine','info'); return; }
+  if (!ejsConfig.publicKey) { showToast('Configurează EmailJS în Setări!','error'); return; }
+  showToast(`Se trimit ${due.length} remindere...`,'info');
+  let sent = 0;
+  for (const c of due) {
+    const label = c.followup < today ? 'ÎNTÂRZIAT' : c.followup === today ? 'AZI' : 'MÂINE';
+    if (await sendReminderEmail(c, label)) sent++;
+  }
+  showToast(`✅ ${sent}/${due.length} remindere trimise`,'success');
+}
+
+async function testEmail() {
+  if (!ejsConfig.publicKey||!ejsConfig.serviceId||!ejsConfig.templateId) { showToast('Completează câmpurile EmailJS!','error'); return; }
+  showToast('Se trimite...','info');
+  const ok = await sendReminderEmail({ companie:'TEST', contact:'Radu', status:'oferta', medii:['OOH'], followup: new Date().toISOString().slice(0,10), notes:[{text:'Email de test din Invent CRM.'}], valoare:'5000' }, 'TEST');
+  showToast(ok ? '✅ Email trimis! Verifică inbox.' : '❌ Eroare. Verifică cheile.', ok ? 'success' : 'error');
+}
+
+// ═══════════════════════════════════════════════════
+// EXPORT / IMPORT
+// ═══════════════════════════════════════════════════
+function exportData() {
+  const ws = workspaces.find(w => w.id === activeWsId);
+  const data = { workspace: ws, clients, ejsConfig, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `crm-${ws.name.replace(/\s+/g,'-')}-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  showToast('✅ Export realizat','success');
+}
+
+function importData(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.clients) { clients = data.clients; saveClients(); renderAll(); renderWsBar(); showToast(`✅ ${clients.length} clienți importați`,'success'); }
+    } catch { showToast('❌ Fișier invalid','error'); }
+  };
+  reader.readAsText(file);
+}
+
+function clearAllData() {
+  if (!confirm('Ștergi toți clienții din acest workspace?')) return;
+  clients = []; saveClients(); renderAll(); renderWsBar(); showToast('Clienți șterși','info');
+}
+
+// ═══════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function formatDate(iso) { if(!iso) return ''; const d=new Date(iso+'T00:00:00'); const dd=String(d.getDate()).padStart(2,'0'); const mm=String(d.getMonth()+1).padStart(2,'0'); const yyyy=d.getFullYear(); return dd+'/'+mm+'/'+yyyy; }
+function daysDiff(a,b) { return Math.round((new Date(b)-new Date(a))/86400000); }
+function getFollowupClass(f) { if(!f)return''; const today=new Date().toISOString().slice(0,10); const in3=new Date(Date.now()+3*86400000).toISOString().slice(0,10); if(f<today)return'overdue'; if(f<=in3)return'soon'; return'ok'; }
+function getFollowupLabel(f) { const today=new Date().toISOString().slice(0,10); const tom=new Date(Date.now()+86400000).toISOString().slice(0,10); if(f<today)return`⚠ Întârziat ${daysDiff(f,today)}z`; if(f===today)return'🔔 Azi!'; if(f===tom)return'⏰ Mâine'; return''; }
+
+let toastTimer;
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast show ${type}`;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); }));
+
+
+// ═══════════════════════════════════════════════════
+// GOOGLE DRIVE SYNC
+// ═══════════════════════════════════════════════════
+const APPS_SCRIPT_CODE = `// Invent CRM - Google Drive Sync Script
+// Copiază tot acest cod în Google Apps Script
+
+const FILE_NAME = 'InventCRM_data.json';
+
+function doGet(e) {
+  try {
+    const action = e.parameter.action || 'read';
+    if (action === 'read') {
+      return ContentService.createTextOutput(readData()).setMimeType(ContentService.MimeType.JSON);
+    }
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({error: err.toString()})).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doPost(e) {
+  try {
+    const data = e.postData.contents;
+    writeData(data);
+    return ContentService.createTextOutput(JSON.stringify({ok: true, ts: new Date().toISOString()})).setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({error: err.toString()})).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function readData() {
+  const files = DriveApp.getFilesByName(FILE_NAME);
+  if (!files.hasNext()) return JSON.stringify({workspaces:[], clients:{}, emailjs:{}, version:1});
+  return files.next().getBlob().getDataAsString();
+}
+
+function writeData(data) {
+  const files = DriveApp.getFilesByName(FILE_NAME);
+  if (files.hasNext()) {
+    files.next().setContent(data);
+  } else {
+    DriveApp.createFile(FILE_NAME, data, MimeType.PLAIN_TEXT);
+  }
+}
+
+// ── EMAIL DIMINEATA (trigger automat la 08:00) ──
+function sendMorningBriefing() {
+  const raw = readData();
+  const crm = JSON.parse(raw);
+  const today = new Date().toISOString().slice(0,10);
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0,10);
+
+  const cfg = crm.emailjs || {};
+  if (!cfg.publicKey || !cfg.serviceId || !cfg.templateId) return;
+
+  let allFollowups = [];
+  const workspaces = crm.workspaces || [];
+  const clientsMap = crm.clients || {};
+
+  workspaces.forEach(ws => {
+    const wsClients = clientsMap[ws.id] || [];
+    wsClients.forEach(c => {
+      if (!c.followup || c.status === 'castigat' || c.status === 'pierdut') return;
+      if (c.followup <= tomorrow) {
+        const STATUS = {lead:'Lead',oferta:'Ofertă trimisă',negociere:'Negociere',castigat:'Câștigat',pierdut:'Pierdut'};
+        allFollowups.push({
+          workspace: ws.name,
+          client: c.companie,
+          contact: c.contact || '—',
+          status: STATUS[c.status] || c.status,
+          medii: (c.medii || []).join(', '),
+          followup: c.followup,
+          urgenta: c.followup < today ? '🔴 ÎNTÂRZIAT' : c.followup === today ? '🔴 AZI' : '🟡 MÂINE',
+          lastNote: c.notes && c.notes.length ? c.notes[c.notes.length-1].text : '—'
+        });
+      }
+    });
+  });
+
+  if (allFollowups.length === 0) return; // nimic de trimis
+
+  let bodyText = '🌅 BRIEFING ZILNIC CRM - ' + today + '\n\n';
+  bodyText += '━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+  bodyText += 'Follow-up-uri pentru AZI și MÂINE:\n\n';
+
+  allFollowups.forEach((f, i) => {
+    bodyText += (i+1) + ') ' + f.urgenta + ' ' + f.client + ' [' + f.workspace + ']\n';
+    bodyText += '   Contact: ' + f.contact + '\n';
+    bodyText += '   Status: ' + f.status + ' | Medii: ' + (f.medii || '—') + '\n';
+    bodyText += '   Data: ' + f.followup + '\n';
+    bodyText += '   Ultima notă: ' + f.lastNote + '\n\n';
+  });
+
+  bodyText += '━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+  bodyText += 'Total: ' + allFollowups.length + ' follow-up-uri urgente\n';
+  bodyText += 'Trimis automat de Invent CRM la 08:00\n';
+
+  const url = 'https://api.emailjs.com/api/v1.0/email/send';
+  const payload = {
+    service_id: cfg.serviceId,
+    template_id: cfg.templateId,
+    user_id: cfg.publicKey,
+    template_params: {
+      to_email: cfg.toEmail || 'radunicolaeserban@gmail.com',
+      client_name: 'BRIEFING ZILNIC',
+      contact: allFollowups.length + ' follow-up-uri urgente',
+      status: 'Rezumat zilnic',
+      medii: allFollowups.map(f => f.client).join(', '),
+      followup_date: today,
+      followup_label: '🌅 Dimineata',
+      last_note: bodyText,
+      valoare: '',
+      workspace: 'Toate workspace-urile'
+    }
+  };
+
+  UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload)
+  });
+}
+
+// ── SETUP TRIGGER (rulează o singură dată manual) ──
+function setupTrigger() {
+  // Șterge triggere existente
+  ScriptApp.getProjectTriggers().forEach(t => ScriptApp.deleteTrigger(t));
+  // Creează trigger la 08:00 în fiecare zi
+  ScriptApp.newTrigger('sendMorningBriefing')
+    .timeBased()
+    .everyDays(1)
+    .atHour(8)
+    .create();
+}`;
+
+let driveConfig = {};
+
+function loadDriveConfig() {
+  const raw = localStorage.getItem('crm_drive_config');
+  driveConfig = raw ? JSON.parse(raw) : {};
+  const el = document.getElementById('drive-webapp-url');
+  if (el) el.value = driveConfig.webAppUrl || '';
+  const code = document.getElementById('apps-script-code');
+  if (code) code.textContent = APPS_SCRIPT_CODE;
+  updateDriveStatus();
+}
+
+function saveDriveConfig() {
+  driveConfig.webAppUrl = document.getElementById('drive-webapp-url').value.trim();
+  localStorage.setItem('crm_drive_config', JSON.stringify(driveConfig));
+  updateDriveStatus();
+}
+
+function updateDriveStatus() {
+  const el = document.getElementById('drive-status');
+  if (el) el.style.background = driveConfig.webAppUrl ? 'var(--green)' : 'var(--red)';
+}
+
+function copyAppsScript() {
+  navigator.clipboard.writeText(APPS_SCRIPT_CODE).then(() => {
+    showToast('✅ Script copiat! Acum du-te în Google Apps Script și lipește-l.', 'success');
+  }).catch(() => {
+    const el = document.getElementById('apps-script-code');
+    const range = document.createRange();
+    range.selectNode(el);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    showToast('Selectat! Apasă Ctrl+C să copiezi.', 'info');
+  });
+}
+
+function buildDrivePayload() {
+  // Construiește un obiect cu TOATE datele din toate workspace-urile
+  const clientsMap = {};
+  workspaces.forEach(ws => {
+    const raw = localStorage.getItem('crm_clients_' + ws.id);
+    clientsMap[ws.id] = raw ? JSON.parse(raw) : [];
+  });
+  // Include și config EmailJS
+  const ejsRaw = localStorage.getItem('crm_emailjs_' + activeWsId);
+  const ejsCfg = ejsRaw ? JSON.parse(ejsRaw) : {};
+
+  return JSON.stringify({
+    workspaces,
+    clients: clientsMap,
+    emailjs: ejsCfg,
+    activeWsId,
+    tasks: JSON.parse(localStorage.getItem('crm_tasks_personal') || '[]'),
+    savedAt: new Date().toISOString(),
+    version: 2
+  });
+}
+
+async function syncToDrive() {
+  if (!driveConfig.webAppUrl) {
+    showToast('Configurează URL-ul Web App mai întâi!', 'error');
+    switchInnerTab('setari', document.querySelector('[data-tab="setari"]'));
+    return;
+  }
+  const statusEl = document.getElementById('drive-sync-status');
+  if (statusEl) statusEl.textContent = 'Se salvează...';
+  try {
+    const res = await fetch(driveConfig.webAppUrl, {
+      method: 'POST',
+      body: buildDrivePayload(),
+      headers: { 'Content-Type': 'text/plain' }
+    });
+    const data = await res.json();
+    if (data.ok) {
+      const now = new Date().toLocaleTimeString('ro-RO', {hour:'2-digit', minute:'2-digit'});
+      if (statusEl) statusEl.textContent = '✅ Salvat la ' + now;
+      showToast('☁ Date salvate în Google Drive!', 'success');
+    } else {
+      throw new Error(data.error || 'Eroare necunoscută');
+    }
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '❌ Eroare';
+    showToast('❌ Sync eșuat: ' + e.message, 'error');
+  }
+}
+
+async function syncFromDrive() {
+  if (!driveConfig.webAppUrl) { showToast('Configurează URL-ul Web App!', 'error'); return; }
+  const statusEl = document.getElementById('drive-sync-status');
+  if (statusEl) statusEl.textContent = 'Se încarcă...';
+  try {
+    const res = await fetch(driveConfig.webAppUrl + '?action=read&t=' + Date.now());
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    if (data.workspaces) {
+      workspaces = data.workspaces;
+      saveWorkspaces();
+      Object.entries(data.clients || {}).forEach(([wsId, cl]) => {
+        localStorage.setItem('crm_clients_' + wsId, JSON.stringify(cl));
+      });
+      if (data.tasks) { localStorage.setItem('crm_tasks_personal', JSON.stringify(data.tasks)); }
+      if (data.emailjs && data.activeWsId) {
+        localStorage.setItem('crm_emailjs_' + data.activeWsId, JSON.stringify(data.emailjs));
+      }
+      loadWorkspace(activeWsId);
+      const now = new Date().toLocaleTimeString('ro-RO', {hour:'2-digit', minute:'2-digit'});
+      if (statusEl) statusEl.textContent = '✅ Sincronizat la ' + now;
+      showToast('✅ Date încărcate din Google Drive!', 'success');
+    }
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '❌ Eroare';
+    showToast('❌ Sync eșuat: ' + e.message, 'error');
+  }
+}
+
+// Auto-sync la fiecare salvare de client
+const _origSaveClients = saveClients;
+// Override saveClients să facă și sync automat dacă e configurat
+function saveClientsAndSync() {
+  localStorage.setItem('crm_clients_' + activeWsId, JSON.stringify(clients));
+  if (driveConfig.webAppUrl) {
+    // Sync silențios după 2 secunde (debounce)
+    clearTimeout(window._syncTimer);
+    window._syncTimer = setTimeout(() => {
+      syncToDrive();
+    }, 2000);
+  }
+}
+
+
+// ═══════════════════════════════════════════════════
+// TASKURI PERSONALE
+// ═══════════════════════════════════════════════════
+const TASK_CATEGORIES = [
+  { id: 'todo', label: '📋 To-do', color: 'var(--purple-light)' },
+  { id: 'medical', label: '🏥 Medical', color: 'var(--red)' },
+  { id: 'financiar', label: '💰 Financiar', color: 'var(--green)' },
+  { id: 'personal', label: '👤 Personal', color: 'var(--blue)' },
+  { id: 'sport', label: '🏃 Sport', color: '#E91E8C' },
+];
+
+let tasks = [];
+
+function loadTasks() {
+  const raw = localStorage.getItem('crm_tasks_personal');
+  tasks = raw ? JSON.parse(raw) : [];
+}
+
+function saveTasks() {
+  localStorage.setItem('crm_tasks_personal', JSON.stringify(tasks));
+  updateTasksBadge();
+  _unsavedChanges = true;
+}
+
+function updateTasksBadge() {
+  const pending = tasks.filter(t => !t.done).length;
+  const badge = document.getElementById('tasks-count-badge');
+  if (badge) badge.innerHTML = pending > 0 ? ` <span style="background:var(--orange);color:#fff;border-radius:10px;padding:1px 5px;font-size:10px;font-weight:700">${pending}</span>` : '';
+}
+
+function renderTasks() {
+  loadTasks();
+  const list = document.getElementById('tasks-list');
+  if (!list) return;
+
+  const today = new Date().toISOString().slice(0,10);
+  const pending = tasks.filter(t => !t.done);
+
+  if (tasks.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">Niciun task</div><div class="empty-sub">Apasă "+ Task" pentru a adăuga</div></div>`;
+    return;
+  }
+
+  const renderTaskCard = (t) => {
+    const cat = TASK_CATEGORIES.find(c => c.id === t.category) || TASK_CATEGORIES[0];
+    let deadlineHtml = '';
+    if (t.deadline) {
+      let cls = 'ok', label = formatDate(t.deadline);
+      if (t.deadline < today) { cls = 'overdue'; label = '⚠ ' + label; }
+      else if (t.deadline === today) { cls = 'soon'; label = '🔔 Azi'; }
+      deadlineHtml = `<div class="followup-date ${cls}" style="font-size:10px;margin-top:5px">📅 ${label}</div>`;
+    }
+    return `
+    <div style="background:var(--surface);border:1px solid var(--border);border-top:3px solid ${cat.color};border-radius:var(--radius-sm);padding:10px;margin-bottom:8px;transition:all 0.15s">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:4px">
+        <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${t.id}',this.checked)"
+          style="width:16px;height:16px;cursor:pointer;accent-color:var(--purple);flex-shrink:0;margin-top:2px">
+        <button onclick="deleteTask('${t.id}')" style="background:transparent;border:none;color:var(--text-dim);cursor:pointer;font-size:13px;padding:0;flex-shrink:0" title="Șterge">🗑</button>
+      </div>
+      <div style="font-weight:600;font-size:12px;margin-top:6px;line-height:1.3;${t.done?'text-decoration:line-through;color:var(--text-dim)':''}">${t.title}</div>
+      ${t.note ? `<div style="font-size:11px;color:var(--text-muted);margin-top:4px;font-style:italic;line-height:1.3">${t.note}</div>` : ''}
+      ${deadlineHtml}
+    </div>`;
+  };
+
+  // 5 coloane pe categorii
+  const cols = TASK_CATEGORIES.map(cat => {
+    const catTasks = pending.filter(t => t.category === cat.id);
+    return `
+    <div style="min-width:0">
+      <div style="font-size:10px;font-weight:700;color:${cat.color};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid ${cat.color}40;text-align:center">
+        ${cat.label}<br><span style="font-size:9px;color:var(--text-dim);font-weight:400">${catTasks.length} task${catTasks.length!==1?'uri':''}</span>
+      </div>
+      ${catTasks.length === 0 
+        ? `<div style="text-align:center;padding:16px 4px;color:var(--text-dim);font-size:11px;border:1px dashed var(--border);border-radius:var(--radius-sm)">—</div>`
+        : catTasks.map(renderTaskCard).join('')
+      }
+    </div>`;
+  }).join('');
+
+  list.innerHTML = `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-items:start">${cols}</div>`;
+  updateTasksBadge();
+}
+
+function openAddTask() {
+  // Modal inline rapid
+  const existing = document.getElementById('task-quick-modal');
+  if (existing) { existing.remove(); return; }
+
+  const modal = document.createElement('div');
+  modal.id = 'task-quick-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:320px;box-shadow:var(--shadow)">
+      <div style="padding:16px 18px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:16px;font-weight:600">Task nou</div>
+        <button onclick="document.getElementById('task-quick-modal').remove()" style="background:transparent;border:none;color:var(--text-muted);font-size:22px;cursor:pointer">×</button>
+      </div>
+      <div style="padding:18px">
+        <div style="margin-bottom:12px">
+          <label class="form-label">Titlu *</label>
+          <input type="text" class="form-input" id="task-title" placeholder="ex: Programare doctor, Plătit factură..." autofocus>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div>
+            <label class="form-label">Categorie</label>
+            <select class="form-select" id="task-category">
+              ${TASK_CATEGORIES.map(c => `<option value="${c.id}">${c.label}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Deadline</label>
+            <input type="date" class="form-input" id="task-deadline">
+          </div>
+        </div>
+        <div style="margin-bottom:4px">
+          <label class="form-label">Notă (opțional)</label>
+          <input type="text" class="form-input" id="task-note" placeholder="Detalii...">
+        </div>
+      </div>
+      <div style="padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn btn-ghost" onclick="document.getElementById('task-quick-modal').remove()">Anulează</button>
+        <button class="btn btn-primary" onclick="saveTask()">Salvează</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
+  // Enter pentru salvare rapidă
+  document.getElementById('task-title').addEventListener('keydown', e => { if(e.key==='Enter') saveTask(); });
+}
+
+function saveTask() {
+  const title = document.getElementById('task-title').value.trim();
+  if (!title) { showToast('Scrie un titlu!', 'error'); return; }
+  loadTasks();
+  tasks.push({
+    id: uid(),
+    title,
+    category: document.getElementById('task-category').value,
+    deadline: document.getElementById('task-deadline').value,
+    note: document.getElementById('task-note').value.trim(),
+    done: false,
+    createdAt: new Date().toISOString()
+  });
+  saveTasks();
+  document.getElementById('task-quick-modal').remove();
+  renderTasks();
+  showToast('✅ Task adăugat', 'success');
+}
+
+function toggleTask(id, done) {
+  loadTasks();
+  const idx = tasks.findIndex(t => t.id === id);
+  if (idx >= 0) { tasks[idx].done = done; tasks[idx].doneAt = done ? new Date().toISOString() : null; }
+  saveTasks();
+  renderTasks();
+  if (done) showToast('✅ Task finalizat!', 'success');
+}
+
+function deleteTask(id) {
+  if (!confirm('Ștergi taskul?')) return;
+  loadTasks();
+  tasks = tasks.filter(t => t.id !== id);
+  saveTasks();
+  renderTasks();
+}
+
+
+function openPersonalDetail(c) {
+  document.getElementById('detail-title').textContent = c.companie;
+  const statusColor = c.status === 'activa' ? 'var(--green)' : 'var(--text-dim)';
+  const statusLabel = c.status === 'activa' ? '🟢 Campanie Activă' : '⚫ Campanie Încheiată';
+  document.getElementById('detail-subtitle').innerHTML = `<span style="color:var(--orange)">${c.brand||''}</span>${c.mediiText?' · '+c.mediiText:''}`;
+
+  const today = new Date().toISOString().slice(0,10);
+  const facturiHtml = (c.facturi||[]).map((f,i) => {
+    if (!f.nr && !f.valoare) return '';
+    let scadentaCls = '', scadentaLbl = f.scadenta ? formatDate(f.scadenta) : '—';
+    if (f.scadenta && !f.incasata) {
+      if (f.scadenta < today) { scadentaCls = 'color:var(--red)'; scadentaLbl = '⚠ '+scadentaLbl; }
+      else if (f.scadenta === today) { scadentaCls = 'color:var(--yellow)'; scadentaLbl = '🔔 Azi'; }
+    }
+    return `
+    <div style="background:var(--surface2);border:1px solid ${f.incasata?'var(--green)':'var(--border)'};border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;opacity:${f.incasata?'0.6':'1'}">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div>
+          <span style="font-weight:600;font-size:13px;${f.incasata?'text-decoration:line-through;color:var(--text-dim)':''}">${f.nr}</span>
+          ${f.valoare?`<span style="font-family:'DM Mono',monospace;color:var(--orange);margin-left:10px">€${Number(f.valoare).toLocaleString()}</span>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:11px;${scadentaCls}">📅 ${scadentaLbl}</span>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px">
+            <input type="checkbox" ${f.incasata?'checked':''} onchange="toggleFacturaIncasata('${c.id}',${i},this.checked)" style="accent-color:var(--green)">
+            ${f.incasata?'<span style="color:var(--green)">✅ Încasată</span>':'<span style="color:var(--text-muted)">Neîncasată</span>'}
+          </label>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const totalFacturat = (c.facturi||[]).reduce((s,f)=>s+(parseFloat(f.valoare)||0),0);
+  const totalIncasat = (c.facturi||[]).filter(f=>f.incasata).reduce((s,f)=>s+(parseFloat(f.valoare)||0),0);
+
+  document.getElementById('detail-body').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <span class="status-badge" style="font-size:12px;padding:4px 10px;background:${c.status==='activa'?'var(--green-dim)':'var(--surface3)'};color:${statusColor}">${statusLabel}</span>
+      ${c.valoreCampanie?`<span style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:var(--orange)">Campanie: €${Number(c.valoreCampanie).toLocaleString()}</span>`:''}
+    </div>
+    ${totalFacturat>0?`<div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap">
+      <span style="font-size:12px;color:var(--text-muted)">Total facturat: <strong style="color:var(--blue);font-family:'DM Mono',monospace">€${totalFacturat.toLocaleString()}</strong></span>
+      <span style="font-size:12px;color:var(--text-muted)">Încasat: <strong style="color:var(--green);font-family:'DM Mono',monospace">€${totalIncasat.toLocaleString()}</strong></span>
+      ${totalFacturat-totalIncasat>0?`<span style="font-size:12px;color:var(--text-muted)">Rămas: <strong style="color:var(--red);font-family:'DM Mono',monospace">€${(totalFacturat-totalIncasat).toLocaleString()}</strong></span>`:''}
+    </div>`:''}
+    <hr class="divider">
+    <div class="section-title" style="margin-bottom:10px">Facturi emise</div>
+    ${facturiHtml || '<div style="color:var(--text-dim);font-size:12px;text-align:center;padding:12px">Nicio factură adăugată</div>'}
+  `;
+
+  document.getElementById('detail-edit-btn').onclick = () => { closeModal('modal-detail'); editPersonalClient(c.id); };
+  document.getElementById('detail-delete-btn').onclick = () => deleteClient(c.id);
+  openModal('modal-detail');
+}
+
+function toggleFacturaIncasata(clientId, facturaIdx, checked) {
+  const idx = clients.findIndex(c => c.id === clientId);
+  if (idx < 0) return;
+  clients[idx].facturi[facturaIdx].incasata = checked;
+  clients[idx].updatedAt = new Date().toISOString();
+  saveClients();
+  renderAll();
+  openPersonalDetail(clients[idx]); // refresh modal
+  showToast(checked ? '✅ Factură marcată încasată' : 'Factură marcată neîncasată', checked ? 'success' : 'info');
+}
+
+function editPersonalClient(id) {
+  const c = clients.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('modal-client-title').textContent = 'Editează client';
+  document.getElementById('edit-client-id').value = id;
+  showPersonalForm();
+  document.getElementById('fp-companie').value = c.companie || '';
+  document.getElementById('fp-brand').value = c.brand || '';
+  document.getElementById('fp-valoare-camp').value = c.valoreCampanie || '';
+  document.getElementById('fp-medii').value = c.mediiText || '';
+  document.getElementById('fp-status').value = c.status || 'activa';
+  const facturi = c.facturi || [];
+  [1,2,3,4].forEach((i,idx) => {
+    const f = facturi[idx] || {};
+    const nr = document.getElementById('fp-fnr'+i); if(nr) nr.value = f.nr||'';
+    const val = document.getElementById('fp-fval'+i); if(val) val.value = f.valoare||'';
+    const data = document.getElementById('fp-fdata'+i); if(data) data.value = f.scadenta||'';
+    const cb = document.getElementById('fp-fincasat'+i);
+    const lbl = document.getElementById('fp-fcheck-label'+i);
+    if(cb) cb.checked = f.incasata||false;
+    if(lbl) lbl.classList.toggle('checked', f.incasata||false);
+  });
+  openModal('modal-client');
+}
+
+// ── INIT ──
+// Override saveClients cu versiunea cu auto-sync
+saveClients = saveClientsAndSync;
+loadAll();
+loadDriveConfig();
+
+// Avertizare la închidere dacă există modificări nesalvate în Drive
+let _unsavedChanges = false;
+const _origSaveClientsAndSync = saveClientsAndSync;
+saveClientsAndSync = function() {
+  _unsavedChanges = true;
+  _origSaveClientsAndSync();
+  // După sync reușit resetăm flag-ul
+};
+
+// Override syncToDrive să reseteze flag-ul
+const _origSyncToDrive = syncToDrive;
+syncToDrive = async function() {
+  await _origSyncToDrive();
+  _unsavedChanges = false;
+};
+
+window.addEventListener('beforeunload', function(e) {
+  if (_unsavedChanges && driveConfig.webAppUrl) {
+    e.preventDefault();
+    e.returnValue = 'Ai modificări nesalvate în Drive. Ești sigur că vrei să închizi?';
+    return e.returnValue;
+  }
+});
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
