@@ -327,7 +327,7 @@
 <!-- INNER TABS -->
 <div class="tabs" id="inner-tabs">
   <div class="tab active" data-tab="clienti" onclick="switchInnerTab('clienti',this)" id="tab-btn-clienti">Clienți</div>
-  <div class="tab" data-tab="remindere" onclick="switchInnerTab('remindere',this)">Follow-up <span id="reminder-count-badge"></span></div>
+  <div class="tab" data-tab="remindere" onclick="switchInnerTab('remindere',this)" id="tab-btn-remindere">Follow-up <span id="reminder-count-badge"></span></div>
   <div class="tab" data-tab="propuneri" onclick="switchInnerTab('propuneri',this)" id="tab-btn-propuneri">Propuneri</div>
   <div class="tab" id="tab-btn-taskuri" data-tab="taskuri" onclick="switchInnerTab('taskuri',this)" style="display:none">✅ Taskuri <span id="tasks-count-badge"></span></div>
   <div class="tab" data-tab="setari" onclick="switchInnerTab('setari',this)">Setări Email</div>
@@ -661,8 +661,8 @@ function loadAll() {
     workspaces = [
       { id: 'ws_invent', name: 'Invent Media', color: '#5B2D8E', emoji: '🏢' },
       { id: 'ws_personal', name: 'Personal', color: '#F47920', emoji: '👤' },
-      { id: 'ws_firma2', name: 'Firma 2', color: '#3498DB', emoji: '🎯' },
-      { id: 'ws_firma3', name: 'Firma 3', color: '#2ECC71', emoji: '💼' },
+      { id: 'ws_firma2', name: 'Firma 1', color: '#3498DB', emoji: '🎯' },
+      { id: 'ws_firma3', name: 'Firma 2', color: '#2ECC71', emoji: '💼' },
     ];
     saveWorkspaces();
   }
@@ -686,28 +686,42 @@ function loadWorkspace(wsId) {
   renderWsBar();
   renderWsHeader();
   renderAll();
-  // Arată/ascunde tab Taskuri doar pentru Personal
+  // Arată/ascunde tab-uri în funcție de workspace
   const isPersonal = wsId === 'ws_personal';
   const taskTab = document.getElementById('tab-btn-taskuri');
   const propuneriTab = document.getElementById('tab-btn-propuneri');
   const clientiTab = document.getElementById('tab-btn-clienti');
-  if (taskTab) taskTab.style.display = isPersonal ? '' : 'none';
-  if (propuneriTab) propuneriTab.style.display = isPersonal ? 'none' : '';
-  // Dacă suntem pe Personal și eram pe Propuneri → mergi pe Taskuri
+  const remindereTab = document.getElementById('tab-btn-remindere');
+
   if (isPersonal) {
-    const activeTab = document.querySelector('[data-tab].active');
-    if (activeTab && activeTab.dataset.tab === 'propuneri') {
-      switchInnerTab('taskuri', taskTab, true);
+    // Personal: Taskuri | Clienți | Finalizate (ascunde Propuneri)
+    if (taskTab) { taskTab.style.display = ''; taskTab.textContent = ''; taskTab.innerHTML = '✅ Taskuri <span id="tasks-count-badge"></span>'; }
+    if (propuneriTab) propuneriTab.style.display = 'none';
+    if (remindereTab) remindereTab.innerHTML = 'Finalizate <span id="reminder-count-badge"></span>';
+    // Reordonare vizuală: Taskuri primul
+    const tabs = document.getElementById('inner-tabs');
+    if (tabs && taskTab && clientiTab) {
+      tabs.insertBefore(taskTab, clientiTab);
     }
-  }
-  // Dacă nu e Personal și eram pe Taskuri → mergi pe Clienți
-  if (!isPersonal) {
+    // Mergi pe Taskuri implicit
+    switchInnerTab('taskuri', taskTab, true);
+    loadTasks(); renderTasks(); updateTasksBadge();
+  } else {
+    // Alte workspace-uri: Clienți | Follow-up | Propuneri
+    if (taskTab) taskTab.style.display = 'none';
+    if (propuneriTab) propuneriTab.style.display = '';
+    if (remindereTab) remindereTab.innerHTML = 'Follow-up <span id="reminder-count-badge"></span>';
+    // Resetează ordinea: Clienți primul
+    const tabs = document.getElementById('inner-tabs');
+    if (tabs && clientiTab) {
+      tabs.insertBefore(clientiTab, tabs.firstChild);
+    }
+    // Dacă eram pe Taskuri → mergi pe Clienți
     const activeTab = document.querySelector('[data-tab].active');
     if (activeTab && activeTab.dataset.tab === 'taskuri') {
       switchInnerTab('clienti', clientiTab, true);
     }
   }
-  if (isPersonal) { loadTasks(); renderTasks(); updateTasksBadge(); }
   // Ascunde filtrele pe medii în Personal
   const mf = document.getElementById('media-filters');
   if (mf) {
@@ -1727,10 +1741,10 @@ function saveClientsAndSync() {
 // ═══════════════════════════════════════════════════
 const TASK_CATEGORIES = [
   { id: 'todo', label: '📋 To-do', color: 'var(--purple-light)' },
-  { id: 'medical', label: '🏥 Medical', color: 'var(--red)' },
-  { id: 'financiar', label: '💰 Financiar', color: 'var(--green)' },
   { id: 'personal', label: '👤 Personal', color: 'var(--blue)' },
   { id: 'sport', label: '🏃 Sport', color: '#E91E8C' },
+  { id: 'financiar', label: '💰 Financiar', color: 'var(--green)' },
+  { id: 'medical', label: '🏥 Medical', color: 'var(--red)' },
 ];
 
 let tasks = [];
