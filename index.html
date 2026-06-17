@@ -291,6 +291,101 @@
   .toast.error { border-left: 3px solid var(--red); }
   .toast.info { border-left: 3px solid var(--blue); }
 
+  /* ── PIN SCREEN ── */
+  .pin-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+  }
+  .pin-logo {
+    font-size: 48px;
+    margin-bottom: 8px;
+  }
+  .pin-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+  .pin-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: -16px;
+  }
+  .pin-dots {
+    display: flex;
+    gap: 16px;
+    margin: 8px 0;
+  }
+  .pin-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: transparent;
+    transition: all 0.15s;
+  }
+  .pin-dot.filled {
+    background: var(--purple);
+    border-color: var(--purple);
+    box-shadow: 0 0 8px var(--purple);
+  }
+  .pin-dot.error {
+    background: var(--red);
+    border-color: var(--red);
+    box-shadow: 0 0 8px var(--red);
+  }
+  .pin-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .pin-key {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 22px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+    user-select: none;
+  }
+  .pin-key:hover { background: var(--surface2); border-color: var(--purple-light); }
+  .pin-key:active { transform: scale(0.92); background: var(--purple-dim); }
+  .pin-key.zero { grid-column: 2; }
+  .pin-key.del { background: transparent; border-color: transparent; color: var(--text-muted); font-size: 18px; }
+  .pin-key.del:hover { color: var(--red); border-color: transparent; background: transparent; }
+  .pin-error-msg {
+    font-size: 12px;
+    color: var(--red);
+    height: 16px;
+    transition: all 0.2s;
+  }
+  .pin-change-btn {
+    font-size: 12px;
+    color: var(--text-dim);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    margin-top: 8px;
+    text-decoration: underline;
+  }
+  .pin-change-btn:hover { color: var(--purple-light); }
+
   @media (max-width: 600px) {
     .header { padding: 10px 12px; top: 39px; }
     .main { padding: 12px; }
@@ -303,6 +398,35 @@
 </style>
 </head>
 <body>
+
+<!-- PIN SCREEN -->
+<div class="pin-overlay" id="pin-overlay">
+  <div class="pin-logo">🟣</div>
+  <div class="pin-title">Cyungys CRM</div>
+  <div class="pin-subtitle" id="pin-subtitle">Introdu PIN-ul pentru acces</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="dot-0"></div>
+    <div class="pin-dot" id="dot-1"></div>
+    <div class="pin-dot" id="dot-2"></div>
+    <div class="pin-dot" id="dot-3"></div>
+  </div>
+  <div class="pin-error-msg" id="pin-error"></div>
+  <div class="pin-keypad">
+    <button class="pin-key" onclick="pinPress('1')">1</button>
+    <button class="pin-key" onclick="pinPress('2')">2</button>
+    <button class="pin-key" onclick="pinPress('3')">3</button>
+    <button class="pin-key" onclick="pinPress('4')">4</button>
+    <button class="pin-key" onclick="pinPress('5')">5</button>
+    <button class="pin-key" onclick="pinPress('6')">6</button>
+    <button class="pin-key" onclick="pinPress('7')">7</button>
+    <button class="pin-key" onclick="pinPress('8')">8</button>
+    <button class="pin-key" onclick="pinPress('9')">9</button>
+    <div></div>
+    <button class="pin-key zero" onclick="pinPress('0')">0</button>
+    <button class="pin-key del" onclick="pinDelete()">⌫</button>
+  </div>
+  <button class="pin-change-btn" id="pin-change-btn" onclick="pinChangeMode()" style="display:none">Schimbă PIN-ul</button>
+</div>
 
 <!-- WORKSPACE SWITCHER -->
 <div class="ws-bar" id="ws-bar">
@@ -434,6 +558,12 @@
         <button class="btn btn-ghost btn-sm" onclick="syncFromDrive()">⬇ Încarcă din Drive</button>
         <span id="drive-sync-status" style="font-size:11px;color:var(--text-dim)"></span>
       </div>
+    </div>
+
+    <div class="config-box">
+      <div class="config-title">🔐 Securitate</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">PIN curent: 4 cifre. Schimbă-l dacă e necesar.</p>
+      <button class="btn btn-ghost btn-sm" onclick="pinChangeMode()">🔐 Schimbă PIN-ul</button>
     </div>
 
     <div class="config-box" id="ws-danger-zone">
@@ -1994,6 +2124,136 @@ function editPersonalClient(id) {
   });
   openModal('modal-client');
 }
+
+
+// ═══════════════════════════════════════════════════
+// PIN PROTECTION
+// ═══════════════════════════════════════════════════
+const DEFAULT_PIN = '1234';
+let pinBuffer = '';
+let pinChanging = false;
+let pinNewBuffer = '';
+
+function pinGetStored() {
+  return localStorage.getItem('crm_pin') || DEFAULT_PIN;
+}
+
+function pinPress(digit) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += digit;
+  pinUpdateDots(pinBuffer.length, false);
+
+  if (pinBuffer.length === 4) {
+    setTimeout(() => {
+      if (pinChanging) {
+        pinConfirmNew();
+      } else {
+        pinVerify();
+      }
+    }, 150);
+  }
+}
+
+function pinDelete() {
+  if (pinBuffer.length > 0) {
+    pinBuffer = pinBuffer.slice(0, -1);
+    pinUpdateDots(pinBuffer.length, false);
+    document.getElementById('pin-error').textContent = '';
+  }
+}
+
+function pinUpdateDots(count, error) {
+  [0,1,2,3].forEach(i => {
+    const dot = document.getElementById('dot-'+i);
+    dot.classList.toggle('filled', i < count && !error);
+    dot.classList.toggle('error', error);
+  });
+}
+
+function pinVerify() {
+  if (pinBuffer === pinGetStored()) {
+    // Corect — ascunde overlay
+    pinUpdateDots(4, false);
+    setTimeout(() => {
+      document.getElementById('pin-overlay').style.display = 'none';
+      document.getElementById('pin-change-btn').style.display = 'block';
+    }, 200);
+  } else {
+    // Greșit
+    pinUpdateDots(4, true);
+    document.getElementById('pin-error').textContent = 'PIN incorect. Încearcă din nou.';
+    setTimeout(() => {
+      pinBuffer = '';
+      pinUpdateDots(0, false);
+      document.getElementById('pin-error').textContent = '';
+    }, 1000);
+  }
+}
+
+function pinChangeMode() {
+  pinChanging = true;
+  pinNewBuffer = '';
+  pinBuffer = '';
+  pinUpdateDots(0, false);
+  const subtitle = document.getElementById('pin-subtitle');
+  const error = document.getElementById('pin-error');
+  const overlay = document.getElementById('pin-overlay');
+  if (subtitle) subtitle.textContent = 'Introdu PIN-ul actual';
+  if (error) error.textContent = '';
+  if (overlay) overlay.style.display = 'flex';
+}
+
+function pinConfirmNew() {
+  const subtitle = document.getElementById('pin-subtitle');
+  const error = document.getElementById('pin-error');
+  const overlay = document.getElementById('pin-overlay');
+
+  if (pinNewBuffer === '') {
+    if (pinBuffer === pinGetStored()) {
+      pinNewBuffer = '__verified__';
+      pinBuffer = '';
+      pinUpdateDots(0, false);
+      if (subtitle) subtitle.textContent = 'Introdu noul PIN (4 cifre)';
+    } else {
+      pinUpdateDots(4, true);
+      if (error) error.textContent = 'PIN actual incorect!';
+      setTimeout(() => { pinBuffer=''; pinUpdateDots(0,false); if(error) error.textContent=''; }, 1000);
+    }
+  } else if (pinNewBuffer === '__verified__') {
+    pinNewBuffer = pinBuffer;
+    pinBuffer = '';
+    pinUpdateDots(0, false);
+    if (subtitle) subtitle.textContent = 'Confirmă noul PIN';
+  } else {
+    if (pinBuffer === pinNewBuffer) {
+      localStorage.setItem('crm_pin', pinBuffer);
+      pinChanging = false;
+      pinNewBuffer = '';
+      pinBuffer = '';
+      if (overlay) overlay.style.display = 'none';
+      if (subtitle) subtitle.textContent = 'Introdu PIN-ul pentru acces';
+      showToast('✅ PIN schimbat cu succes!', 'success');
+    } else {
+      pinUpdateDots(4, true);
+      if (error) error.textContent = 'PIN-urile nu coincid!';
+      setTimeout(() => {
+        pinBuffer=''; pinNewBuffer='__verified__';
+        pinUpdateDots(0,false);
+        if(error) error.textContent='';
+        if(subtitle) subtitle.textContent = 'Introdu noul PIN (4 cifre)';
+      }, 1000);
+    }
+  }
+}
+
+// Suport tastatură fizică
+document.addEventListener('keydown', function(e) {
+  if (document.getElementById('pin-overlay').style.display !== 'none' &&
+      document.getElementById('pin-overlay').style.display !== '') {
+    if (e.key >= '0' && e.key <= '9') pinPress(e.key);
+    if (e.key === 'Backspace') pinDelete();
+  }
+});
 
 // ── INIT ──
 // Override saveClients cu versiunea cu auto-sync
