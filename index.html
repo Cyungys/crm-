@@ -163,10 +163,10 @@
 
   /* ── FILTERS ── */
   .filters { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
-  .filter-btn { padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif; }
+  .filter-btn { padding: 4px 9px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif; white-space: nowrap; }
   .filter-btn:hover { border-color: var(--purple-light); color: var(--text); }
   .filter-btn.active { background: var(--purple); border-color: var(--purple); color: #fff; }
-  .search-box { flex: 1; min-width: 160px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; color: var(--text); font-size: 13px; font-family: 'Inter', sans-serif; outline: none; }
+  .search-box { flex: 0 0 auto; min-width: 100px; max-width: 160px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; color: var(--text); font-size: 12px; font-family: 'Inter', sans-serif; outline: none; }
   .search-box:focus { border-color: var(--purple-light); }
   .search-box::placeholder { color: var(--text-dim); }
 
@@ -464,13 +464,18 @@
   <div id="tab-clienti">
     <div class="stats-bar" id="stats-bar"></div>
     <div class="filters" id="media-filters">
-      <input type="text" class="search-box" placeholder="🔍 Caută client..." id="search-input" oninput="renderClients()">
+      <input type="text" class="search-box" placeholder="🔍 Caută..." id="search-input" oninput="renderClients()" style="min-width:100px;max-width:160px;flex:0 0 auto">
       <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">Toți</button>
       <button class="filter-btn" data-filter="OOH" onclick="setFilter('OOH',this)">OOH</button>
+      <button class="filter-btn" data-filter="DOOH" onclick="setFilter('DOOH',this)">DOOH</button>
       <button class="filter-btn" data-filter="Radio" onclick="setFilter('Radio',this)">Radio</button>
       <button class="filter-btn" data-filter="Indoor" onclick="setFilter('Indoor',this)">Indoor</button>
-      <button class="filter-btn" data-filter="DOOH" onclick="setFilter('DOOH',this)">DOOH</button>
       <button class="filter-btn" data-filter="Digital Van" onclick="setFilter('Digital Van',this)">Digital Van</button>
+      <button class="filter-btn" data-filter="Elevator" onclick="setFilter('Elevator',this)">Elevator</button>
+      <button class="filter-btn" data-filter="STB" onclick="setFilter('STB',this)">STB</button>
+      <button class="filter-btn" data-filter="Rezidential" onclick="setFilter('Rezidential',this)">Rezidențial</button>
+      <button class="filter-btn" data-filter="Metro" onclick="setFilter('Metro',this)">Metro</button>
+      <button class="filter-btn" data-filter="Bikevertising" onclick="setFilter('Bikevertising',this)">Bikevertising</button>
     </div>
     <div class="clients-grid" id="clients-grid"></div>
   </div>
