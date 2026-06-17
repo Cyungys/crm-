@@ -72,7 +72,7 @@
     user-select: none;
   }
   .ws-tab:hover { color: var(--text-muted); }
-  .ws-tab.active { color: var(--text); border-bottom-color: var(--orange); }
+  .ws-tab.active { color: var(--text); border-bottom-color: #E91E8C; }
   .ws-dot {
     width: 8px; height: 8px;
     border-radius: 50%;
@@ -454,7 +454,7 @@
   <div class="tab" data-tab="remindere" onclick="switchInnerTab('remindere',this)" id="tab-btn-remindere">Follow-up <span id="reminder-count-badge"></span></div>
   <div class="tab" data-tab="propuneri" onclick="switchInnerTab('propuneri',this)" id="tab-btn-propuneri">Propuneri</div>
   <div class="tab" id="tab-btn-taskuri" data-tab="taskuri" onclick="switchInnerTab('taskuri',this)" style="display:none">✅ Taskuri <span id="tasks-count-badge"></span></div>
-  <div class="tab" data-tab="setari" onclick="switchInnerTab('setari',this)">Setări Email</div>
+  <div class="tab" data-tab="setari" onclick="switchInnerTab('setari',this)" id="tab-btn-setari">Setări</div>
 </div>
 
 <!-- MAIN -->
@@ -506,21 +506,6 @@
 
   <!-- TAB: SETARI -->
   <div id="tab-setari" style="display:none">
-    <div class="config-box">
-      <div class="config-title">
-        <div class="config-status" id="emailjs-status" style="background:var(--red)"></div>
-        EmailJS — reminder-e automate
-      </div>
-      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.6">
-        Fiecare workspace are propriile chei EmailJS și adresa de email.<br>
-        <a href="https://emailjs.com" target="_blank" style="color:var(--purple-light)">emailjs.com</a> → cont gratuit → Service Gmail → Template → copiază cheile.
-      </p>
-      <div class="form-group"><label class="form-label">Public Key</label><input type="text" class="form-input" id="ejs-public-key" placeholder="user_..." oninput="saveEmailJSConfig()"></div>
-      <div class="form-group"><label class="form-label">Service ID</label><input type="text" class="form-input" id="ejs-service-id" placeholder="service_..." oninput="saveEmailJSConfig()"></div>
-      <div class="form-group"><label class="form-label">Template ID</label><input type="text" class="form-input" id="ejs-template-id" placeholder="template_..." oninput="saveEmailJSConfig()"></div>
-      <div class="form-group"><label class="form-label">Email reminder (al tău)</label><input type="email" class="form-input" id="ejs-to-email" oninput="saveEmailJSConfig()"></div>
-      <button class="btn btn-primary btn-sm" onclick="testEmail()">Trimite email de test</button>
-    </div>
     <div class="config-box">
       <div class="config-title">📦 Export / Import</div>
       <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Export/import doar pentru workspace-ul curent.</p>
@@ -789,10 +774,10 @@ function loadAll() {
   if (workspaces.length === 0) {
     // Prima rulare — creăm workspace-urile default
     workspaces = [
-      { id: 'ws_invent', name: 'Invent Media', color: '#5B2D8E', emoji: '🏢' },
-      { id: 'ws_personal', name: 'Personal', color: '#F47920', emoji: '👤' },
-      { id: 'ws_firma2', name: 'Firma 1', color: '#3498DB', emoji: '🎯' },
-      { id: 'ws_firma3', name: 'Firma 2', color: '#2ECC71', emoji: '💼' },
+      { id: 'ws_invent', name: 'Personal', color: '#E91E8C', emoji: '👤' },
+      { id: 'ws_personal', name: 'Familie', color: '#F47920', emoji: '👨‍👩‍👧' },
+      { id: 'ws_firma2', name: 'Workspace 3', color: '#3498DB', emoji: '🎯' },
+      { id: 'ws_firma3', name: 'Workspace 4', color: '#2ECC71', emoji: '💼' },
     ];
     saveWorkspaces();
   }
@@ -897,7 +882,7 @@ function renderWsHeader() {
   if (!ws) return;
   document.getElementById('ws-color-dot').style.background = ws.color;
   document.getElementById('ws-name-display').textContent = (ws.emoji ? ws.emoji + ' ' : '') + ws.name;
-  document.title = 'CRM · ' + ws.name;
+  document.title = 'Cyungys CRM · ' + ws.name;
   // Butoane Drive vizibile pe toate workspace-urile
   const btnDown = document.getElementById('btn-sync-down');
   const btnUp = document.getElementById('btn-sync-up');
@@ -1108,6 +1093,7 @@ function renderStandardCard(c) {
     <div class="card-footer">
       <div style="display:flex;flex-wrap:wrap;align-items:center;gap:7px;flex:1;min-width:0">
         <span class="followup-date ${fcls}">${c.followup ? '📅 '+flbl : '⚪ Fără follow-up'}</span>
+        ${c.followup ? `<button onclick="snoozeFollowup('${c.id}',event)" title="Amână o zi" style="background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--text-muted);font-size:10px;padding:1px 5px;cursor:pointer;flex-shrink:0">+1zi</button>` : ''}
         ${c.telefon ? `<a href="tel:${c.telefon}" onclick="event.stopPropagation()" style="color:var(--green);font-size:11px;text-decoration:none" title="${c.telefon}">📞 ${c.telefon}</a>` : ''}
         ${c.email ? `<a href="mailto:${c.email}" onclick="event.stopPropagation()" style="color:var(--blue);font-size:11px;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px" title="${c.email}">✉ ${c.email}</a>` : ''}
       </div>
@@ -1384,7 +1370,10 @@ function openDetail(id) {
   document.getElementById('detail-body').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
       <span class="status-badge badge-${c.status}" style="font-size:12px;padding:4px 10px">${STATUS_LABELS[c.status]}</span>
-      ${c.valoare ? `<span style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:var(--orange)">€${Number(c.valoare).toLocaleString()}</span>` : ''}
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+        ${c.valoare ? `<span style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:var(--orange)">€${Number(c.valoare).toLocaleString()}</span>` : ''}
+        ${c.followup ? `<button onclick="snoozeFollowup('${c.id}',event);setTimeout(()=>{closeModal('modal-detail');openDetail('${c.id}')},100)" style="background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);font-size:11px;padding:3px 10px;cursor:pointer;white-space:nowrap">📅 +1 zi</button>` : ''}
+      </div>
     </div>
     <div class="media-tags" style="margin-bottom:12px">${mediaTags}</div>
     ${c.followup ? `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:12px;font-size:12px">
@@ -2255,6 +2244,23 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'Backspace') pinDelete();
   }
 });
+
+
+function snoozeFollowup(id, event) {
+  event.stopPropagation();
+  const idx = clients.findIndex(c => c.id === id);
+  if (idx < 0) return;
+  const c = clients[idx];
+  if (!c.followup) return;
+  // Adaugă o zi
+  const d = new Date(c.followup + 'T00:00:00');
+  d.setDate(d.getDate() + 1);
+  clients[idx].followup = d.toISOString().slice(0,10);
+  clients[idx].updatedAt = new Date().toISOString();
+  saveClients();
+  renderAll();
+  showToast('📅 Amânat cu o zi → ' + formatDate(clients[idx].followup), 'info');
+}
 
 // ── INIT ──
 // Override saveClients cu versiunea cu auto-sync
