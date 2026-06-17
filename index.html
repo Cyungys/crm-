@@ -442,9 +442,9 @@
   </div>
   <div class="header-actions">
     <button class="btn btn-ghost btn-sm" onclick="openWsSettings()" title="Setări">⚙</button>
-    <button class="btn btn-ghost btn-sm" id="btn-sync-down" onclick="syncFromDrive()" title="Încarcă din Drive" style="color:var(--blue);border-color:var(--blue);display:none">⬇</button>
-    <button class="btn btn-ghost btn-sm" id="btn-sync-up" onclick="syncToDrive()" title="Salvează în Drive" style="color:var(--green);border-color:var(--green);display:none">☁</button>
-    <button class="btn btn-primary btn-sm" onclick="openAddClient()">+ Client</button>
+    <button class="btn btn-ghost" id="btn-sync-down" onclick="syncFromDrive()" title="Încarcă din Drive" style="color:var(--blue);border-color:var(--blue);padding:8px 14px;font-size:16px;margin-left:4px">⬇</button>
+    <button class="btn btn-ghost" id="btn-sync-up" onclick="syncToDrive()" title="Salvează în Drive" style="color:var(--green);border-color:var(--green);padding:8px 14px;font-size:16px;margin-left:4px">☁</button>
+    <button class="btn btn-primary btn-sm" onclick="openAddClient()" style="margin-left:8px">+ Client</button>
   </div>
 </header>
 
@@ -898,10 +898,11 @@ function renderWsHeader() {
   document.getElementById('ws-color-dot').style.background = ws.color;
   document.getElementById('ws-name-display').textContent = (ws.emoji ? ws.emoji + ' ' : '') + ws.name;
   document.title = 'CRM · ' + ws.name;
-  // Butoane Drive vizibile doar pe Invent Media
-  const isInvent = activeWsId === 'ws_invent';
-  document.getElementById('btn-sync-down').style.display = isInvent ? '' : 'none';
-  document.getElementById('btn-sync-up').style.display = isInvent ? '' : 'none';
+  // Butoane Drive vizibile pe toate workspace-urile
+  const btnDown = document.getElementById('btn-sync-down');
+  const btnUp = document.getElementById('btn-sync-up');
+  if (btnDown) btnDown.style.display = '';
+  if (btnUp) btnUp.style.display = '';
 }
 
 function switchWorkspace(wsId) {
