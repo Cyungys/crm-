@@ -463,8 +463,15 @@
   <!-- TAB: CLIENTI -->
   <div id="tab-clienti">
     <div class="stats-bar" id="stats-bar"></div>
+    <div id="pipeline-bar" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:16px;display:none"></div>
     <div class="filters" id="media-filters">
       <input type="text" class="search-box" placeholder="🔍 Caută..." id="search-input" oninput="renderClients()" style="min-width:100px;max-width:160px;flex:0 0 auto">
+      <button class="filter-btn" onclick="globalSearch()" title="Caută în toate workspace-urile" style="border-color:var(--purple-light);color:var(--purple-light)">🌐</button>
+      <select onchange="setSort(this.value)" style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 10px;color:var(--text-muted);font-size:11px;font-family:'Inter',sans-serif;outline:none;cursor:pointer" title="Sortare">
+        <option value="followup">↕ Follow-up</option>
+        <option value="valoare">↕ Valoare</option>
+        <option value="alfabetic">↕ A-Z</option>
+      </select>
       <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">Toți</button>
       <button class="filter-btn" data-filter="OOH" onclick="setFilter('OOH',this)">OOH</button>
       <button class="filter-btn" data-filter="DOOH" onclick="setFilter('DOOH',this)">DOOH</button>
@@ -476,6 +483,7 @@
       <button class="filter-btn" data-filter="Rezidential" onclick="setFilter('Rezidential',this)">Rezidențial</button>
       <button class="filter-btn" data-filter="Metro" onclick="setFilter('Metro',this)">Metro</button>
       <button class="filter-btn" data-filter="Bikevertising" onclick="setFilter('Bikevertising',this)">Bikevertising</button>
+      <button class="filter-btn" data-filter="ARHIVA" onclick="setFilter('ARHIVA',this)" style="border-color:var(--text-dim)">📦 Arhivă</button>
     </div>
     <div class="clients-grid" id="clients-grid"></div>
   </div>
@@ -516,6 +524,7 @@
       <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Export/import doar pentru workspace-ul curent.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-ghost btn-sm" onclick="exportData()">⬇ Export JSON</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV()">📊 Export CSV (Excel)</button>
         <label class="btn btn-ghost btn-sm" style="cursor:pointer">⬆ Import JSON<input type="file" accept=".json" style="display:none" onchange="importData(event)"></label>
         <button class="btn btn-danger btn-sm" onclick="clearAllData()">🗑 Șterge clienți</button>
       </div>
@@ -700,8 +709,10 @@
       <button class="close-btn" onclick="closeModal('modal-detail')">×</button>
     </div>
     <div class="modal-body" id="detail-body"></div>
-    <div class="modal-footer">
-      <button class="btn btn-danger btn-sm" id="detail-delete-btn">🗑 Șterge</button>
+    <div class="modal-footer" style="flex-wrap:wrap">
+      <button class="btn btn-danger btn-sm" id="detail-delete-btn">🗑</button>
+      <button class="btn btn-ghost btn-sm" id="detail-clone-btn" title="Duplică clientul">⧉ Clonează</button>
+      <button class="btn btn-ghost btn-sm" id="detail-unarchive-btn" style="display:none;color:var(--green);border-color:var(--green)">📤 Dezarhivează</button>
       <button class="btn btn-ghost" onclick="closeModal('modal-detail')">Închide</button>
       <button class="btn btn-primary" id="detail-edit-btn">✏ Editează</button>
     </div>
@@ -1013,16 +1024,50 @@ function renderStats() {
 }
 
 function renderStandardStats() {
-  const total = clients.length;
-  const oferte = clients.filter(c => c.status==='oferta'||c.status==='negociere').length;
-  const castigate = clients.filter(c => c.status==='castigat').length;
+  const active = clients.filter(c => !c.archived);
+  const total = active.length;
+  const oferte = active.filter(c => c.status==='oferta'||c.status==='negociere').length;
+  const castigate = active.filter(c => c.status==='castigat').length;
   const today = new Date().toISOString().slice(0,10);
-  const overdue = clients.filter(c => c.followup && c.followup < today && c.status!=='castigat' && c.status!=='pierdut').length;
+  const overdue = active.filter(c => c.followup && c.followup < today && c.status!=='castigat' && c.status!=='pierdut').length;
   document.getElementById('stats-bar').innerHTML = `
     <div class="stat-card"><div class="stat-value" style="color:var(--purple-light)">${total}</div><div class="stat-label">Clienți</div></div>
     <div class="stat-card"><div class="stat-value" style="color:var(--blue)">${oferte}</div><div class="stat-label">Oferte active</div></div>
     <div class="stat-card"><div class="stat-value" style="color:var(--green)">${castigate}</div><div class="stat-label">Câștigate</div></div>
     <div class="stat-card"><div class="stat-value" style="color:${overdue>0?'var(--red)':'var(--text-muted)'}">${overdue}</div><div class="stat-label">Întârziate</div></div>
+  `;
+  renderPipelineBar(active);
+}
+
+function renderPipelineBar(active) {
+  // Pipeline: valoare pe medii pentru clienți în lucru (lead/oferta/negociere)
+  const bar = document.getElementById('pipeline-bar');
+  if (!bar) return;
+  const inWork = active.filter(c => ['lead','oferta','negociere'].includes(c.status) && c.valoare);
+  if (inWork.length === 0) { bar.innerHTML = ''; bar.style.display = 'none'; return; }
+
+  const byMedia = {};
+  let totalVal = 0;
+  inWork.forEach(c => {
+    const val = parseFloat(c.valoare) || 0;
+    totalVal += val;
+    (c.medii || ['—']).forEach(m => {
+      byMedia[m] = (byMedia[m] || 0) + val / (c.medii && c.medii.length ? c.medii.length : 1);
+    });
+  });
+
+  const sorted = Object.entries(byMedia).sort((a,b) => b[1] - a[1]);
+  const chips = sorted.map(([m, v]) => {
+    const o = MEDIA_OPTIONS.find(x => x.id === m);
+    return `<span class="media-tag ${o?o.cls:''}" style="font-size:11px;padding:4px 10px">${m}: <strong style="font-family:'DM Mono',monospace">€${Math.round(v).toLocaleString()}</strong></span>`;
+  }).join('');
+
+  bar.style.display = '';
+  bar.innerHTML = `
+    <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">
+      💰 Pipeline în lucru: <span style="color:var(--orange);font-family:'DM Mono',monospace">€${Math.round(totalVal).toLocaleString()}</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">${chips}</div>
   `;
 }
 
@@ -1056,17 +1101,19 @@ function setFilter(filter, el) {
 function renderClients() {
   const search = (document.getElementById('search-input').value || '').toLowerCase();
   const isPersonal = activeWsId === 'ws_personal';
+  const showArchive = currentFilter === 'ARHIVA';
 
-  let filtered = clients.filter(c =>
-    (!search || c.companie.toLowerCase().includes(search) || (c.contact||'').toLowerCase().includes(search) || (c.brand||'').toLowerCase().includes(search)) &&
-    (isPersonal || currentFilter === 'all' || (c.medii && c.medii.includes(currentFilter)))
-  );
+  let filtered = clients.filter(c => {
+    // Arhivă: doar arhivații; altfel: doar cei nearhivați
+    if (showArchive) { if (!c.archived) return false; }
+    else { if (c.archived) return false; }
+    if (search && !(c.companie.toLowerCase().includes(search) || (c.contact||'').toLowerCase().includes(search) || (c.brand||'').toLowerCase().includes(search))) return false;
+    if (!isPersonal && !showArchive && currentFilter !== 'all' && !(c.medii && c.medii.includes(currentFilter))) return false;
+    return true;
+  });
 
   if (!isPersonal) {
-    filtered.sort((a,b) => {
-      if (a.followup && b.followup) return a.followup.localeCompare(b.followup);
-      if (a.followup) return -1; if (b.followup) return 1; return 0;
-    });
+    filtered = applySortToClients(filtered);
   }
 
   const grid = document.getElementById('clients-grid');
@@ -1411,6 +1458,14 @@ function openDetail(id) {
 
   document.getElementById('detail-edit-btn').onclick = () => { closeModal('modal-detail'); editClient(id); };
   document.getElementById('detail-delete-btn').onclick = () => deleteClient(id);
+  document.getElementById('detail-clone-btn').onclick = () => cloneClient(id);
+  const unarchBtn = document.getElementById('detail-unarchive-btn');
+  if (c.archived) {
+    unarchBtn.style.display = '';
+    unarchBtn.onclick = () => { unarchiveClient(id); closeModal('modal-detail'); };
+  } else {
+    unarchBtn.style.display = 'none';
+  }
   openModal('modal-detail');
 }
 
@@ -1459,13 +1514,21 @@ function editClient(id) {
 }
 
 function deleteClient(id) {
-  if (!confirm('Ștergi clientul? Acțiunea nu poate fi anulată.')) return;
-  clients = clients.filter(c => c.id !== id);
-  saveClients();
-  renderAll();
-  renderWsBar();
-  closeModal('modal-detail');
-  showToast('Client șters','info');
+  const c = clients.find(x => x.id === id);
+  if (!c) return;
+  if (c.archived) {
+    // Din arhivă → ștergere definitivă
+    if (!confirm('Ștergi DEFINITIV clientul "' + c.companie + '"? Nu poate fi recuperat!')) return;
+    clients = clients.filter(x => x.id !== id);
+    saveClients(); renderAll(); renderWsBar();
+    closeModal('modal-detail');
+    showToast('Client șters definitiv','info');
+  } else {
+    // Client activ → propune arhivarea
+    if (confirm('Vrei să ARHIVEZI clientul "' + c.companie + '"?\n\nOK = Arhivează (recuperabil din filtrul 📦 Arhivă)\nCancel = Nu fac nimic\n\n(Pentru ștergere definitivă, arhivează-l întâi, apoi șterge-l din Arhivă)')) {
+      archiveClient(id);
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -1774,9 +1837,15 @@ function buildDrivePayload() {
     const raw = localStorage.getItem('crm_clients_' + ws.id);
     clientsMap[ws.id] = raw ? JSON.parse(raw) : [];
   });
-  // Include și config EmailJS
-  const ejsRaw = localStorage.getItem('crm_emailjs_' + activeWsId);
-  const ejsCfg = ejsRaw ? JSON.parse(ejsRaw) : {};
+  // Include config EmailJS — caută primul config VALID din toate workspace-urile
+  let ejsCfg = {};
+  for (const ws of workspaces) {
+    const raw = localStorage.getItem('crm_emailjs_' + ws.id);
+    if (raw) {
+      const cfg = JSON.parse(raw);
+      if (cfg.publicKey && cfg.serviceId && cfg.templateId) { ejsCfg = cfg; break; }
+    }
+  }
 
   return JSON.stringify({
     workspaces,
@@ -1796,17 +1865,35 @@ async function syncToDrive() {
     return;
   }
   const statusEl = document.getElementById('drive-sync-status');
+
+  // ── Detectare conflicte: verifică dacă altcineva a salvat între timp ──
+  try {
+    const checkRes = await fetch(driveConfig.webAppUrl + '?action=read&t=' + Date.now());
+    const remote = await checkRes.json();
+    if (remote.savedAt && driveConfig.lastLoadedAt && remote.savedAt !== driveConfig.lastLoadedAt) {
+      const remoteTime = new Date(remote.savedAt).toLocaleString('ro-RO', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+      if (!confirm('⚠ ATENȚIE: Datele din Drive au fost modificate de pe alt device la ' + remoteTime + '.\n\nDacă salvezi acum, SUPRASCRII acele modificări!\n\nOK = Salvez oricum (pierzi modificările de pe celălalt device)\nCancel = Anulez (recomandă: apasă întâi ⬇ Încarcă din Drive)')) {
+        if (statusEl) statusEl.textContent = 'Salvare anulată';
+        return;
+      }
+    }
+  } catch(e) { /* dacă verificarea eșuează, continuăm cu salvarea normală */ }
+
   if (statusEl) statusEl.textContent = 'Se salvează...';
   try {
+    const payloadStr = buildDrivePayload();
+    const payloadObj = JSON.parse(payloadStr);
     const res = await fetch(driveConfig.webAppUrl, {
       method: 'POST',
-      body: buildDrivePayload(),
+      body: payloadStr,
       headers: { 'Content-Type': 'text/plain' }
     });
     const data = await res.json();
     if (data.ok) {
       const now = new Date().toLocaleTimeString('ro-RO', {hour:'2-digit', minute:'2-digit'});
       if (statusEl) statusEl.textContent = '✅ Salvat la ' + now;
+      driveConfig.lastLoadedAt = payloadObj.savedAt;
+      localStorage.setItem('crm_drive_config', JSON.stringify(driveConfig));
       showToast('☁ Date salvate în Google Drive!', 'success');
     } else {
       throw new Error(data.error || 'Eroare necunoscută');
@@ -1817,8 +1904,8 @@ async function syncToDrive() {
   }
 }
 
-async function syncFromDrive() {
-  if (!driveConfig.webAppUrl) { showToast('Configurează URL-ul Web App!', 'error'); return; }
+async function syncFromDrive(silent) {
+  if (!driveConfig.webAppUrl) { if(!silent) showToast('Configurează URL-ul Web App!', 'error'); return; }
   const statusEl = document.getElementById('drive-sync-status');
   if (statusEl) statusEl.textContent = 'Se încarcă...';
   try {
@@ -1832,17 +1919,23 @@ async function syncFromDrive() {
         localStorage.setItem('crm_clients_' + wsId, JSON.stringify(cl));
       });
       if (data.tasks) { localStorage.setItem('crm_tasks_personal', JSON.stringify(data.tasks)); }
-      if (data.emailjs && data.activeWsId) {
-        localStorage.setItem('crm_emailjs_' + data.activeWsId, JSON.stringify(data.emailjs));
+      if (data.emailjs && data.emailjs.publicKey) {
+        // Salvează config-ul pe workspace-ul Invent (primul)
+        localStorage.setItem('crm_emailjs_ws_invent', JSON.stringify(data.emailjs));
       }
+      // Memorează timestamp-ul versiunii încărcate (pentru detectare conflicte)
+      driveConfig.lastLoadedAt = data.savedAt || null;
+      localStorage.setItem('crm_drive_config', JSON.stringify(driveConfig));
       loadWorkspace(activeWsId);
       const now = new Date().toLocaleTimeString('ro-RO', {hour:'2-digit', minute:'2-digit'});
       if (statusEl) statusEl.textContent = '✅ Sincronizat la ' + now;
-      showToast('✅ Date încărcate din Google Drive!', 'success');
+      if (!silent) showToast('✅ Date încărcate din Google Drive!', 'success');
+      else showToast('☁ Sincronizat automat', 'info');
+      checkTodayNotifications();
     }
   } catch(e) {
     if (statusEl) statusEl.textContent = '❌ Eroare';
-    showToast('❌ Sync eșuat: ' + e.message, 'error');
+    if (!silent) showToast('❌ Sync eșuat: ' + e.message, 'error');
   }
 }
 
@@ -2081,6 +2174,14 @@ function openPersonalDetail(c) {
 
   document.getElementById('detail-edit-btn').onclick = () => { closeModal('modal-detail'); editPersonalClient(c.id); };
   document.getElementById('detail-delete-btn').onclick = () => deleteClient(c.id);
+  document.getElementById('detail-clone-btn').onclick = () => cloneClient(c.id);
+  const unarchBtnP = document.getElementById('detail-unarchive-btn');
+  if (c.archived) {
+    unarchBtnP.style.display = '';
+    unarchBtnP.onclick = () => { unarchiveClient(c.id); closeModal('modal-detail'); };
+  } else {
+    unarchBtnP.style.display = 'none';
+  }
   openModal('modal-detail');
 }
 
@@ -2267,11 +2368,205 @@ function snoozeFollowup(id, event) {
   showToast('📅 Amânat cu o zi → ' + formatDate(clients[idx].followup), 'info');
 }
 
+
+// ═══════════════════════════════════════════════════
+// NOTIFICĂRI LOCALE BROWSER
+// ═══════════════════════════════════════════════════
+function checkTodayNotifications() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    Notification.requestPermission();
+    return;
+  }
+  if (Notification.permission !== 'granted') return;
+  // Verifică o singură dată pe zi
+  const today = new Date().toISOString().slice(0,10);
+  if (localStorage.getItem('crm_notif_shown') === today) return;
+
+  let urgent = 0;
+  workspaces.forEach(ws => {
+    const wsClients = JSON.parse(localStorage.getItem('crm_clients_' + ws.id) || '[]');
+    urgent += wsClients.filter(c => c.followup && c.followup <= today && c.status !== 'castigat' && c.status !== 'pierdut' && !c.archived).length;
+  });
+  const tasks = JSON.parse(localStorage.getItem('crm_tasks_personal') || '[]');
+  const urgentTasks = tasks.filter(t => !t.done && t.deadline && t.deadline <= today).length;
+
+  const total = urgent + urgentTasks;
+  if (total > 0) {
+    new Notification('🟣 Cyungys CRM', {
+      body: `Ai ${urgent} follow-up-uri și ${urgentTasks} taskuri scadente azi!`,
+      icon: 'icon.png'
+    });
+    localStorage.setItem('crm_notif_shown', today);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// SORTARE CLIENȚI
+// ═══════════════════════════════════════════════════
+let currentSort = 'followup';
+
+function setSort(val) {
+  currentSort = val;
+  renderClients();
+}
+
+function applySortToClients(list) {
+  const sorted = [...list];
+  if (currentSort === 'followup') {
+    sorted.sort((a,b) => {
+      if (a.followup && b.followup) return a.followup.localeCompare(b.followup);
+      if (a.followup) return -1; if (b.followup) return 1; return 0;
+    });
+  } else if (currentSort === 'valoare') {
+    sorted.sort((a,b) => (parseFloat(b.valoare)||0) - (parseFloat(a.valoare)||0));
+  } else if (currentSort === 'alfabetic') {
+    sorted.sort((a,b) => a.companie.localeCompare(b.companie, 'ro'));
+  }
+  return sorted;
+}
+
+// ═══════════════════════════════════════════════════
+// EXPORT CSV
+// ═══════════════════════════════════════════════════
+function exportCSV() {
+  const ws = workspaces.find(w => w.id === activeWsId);
+  if (clients.length === 0) { showToast('Niciun client de exportat', 'info'); return; }
+  const esc = v => '"' + String(v||'').replace(/"/g,'""') + '"';
+  let rows = [['Companie','Contact','Telefon','Email','Status','Medii','Valoare EUR','Data Oferta','Follow-up','Ultima nota'].join(',')];
+  clients.forEach(c => {
+    const lastNote = c.notes && c.notes.length ? c.notes[c.notes.length-1].text : '';
+    rows.push([
+      esc(c.companie), esc(c.contact), esc(c.telefon), esc(c.email),
+      esc(STATUS_LABELS[c.status]||c.status), esc((c.medii||[]).join(' + ')),
+      esc(c.valoare), esc(c.dataOferta), esc(c.followup), esc(lastNote)
+    ].join(','));
+  });
+  const blob = new Blob(['\ufeff' + rows.join('\n')], {type: 'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `crm-${ws.name.replace(/\s+/g,'-')}-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast('✅ CSV exportat', 'success');
+}
+
+// ═══════════════════════════════════════════════════
+// DUPLICARE CLIENT
+// ═══════════════════════════════════════════════════
+function cloneClient(id) {
+  const c = clients.find(x => x.id === id);
+  if (!c) return;
+  const copy = JSON.parse(JSON.stringify(c));
+  copy.id = uid();
+  copy.companie = c.companie + ' (copie)';
+  copy.notes = [];
+  copy.createdAt = new Date().toISOString();
+  copy.updatedAt = new Date().toISOString();
+  clients.push(copy);
+  saveClients();
+  renderAll();
+  renderWsBar();
+  closeModal('modal-detail');
+  showToast('✅ Client duplicat — editează copia', 'success');
+  setTimeout(() => editClient(copy.id), 300);
+}
+
+// ═══════════════════════════════════════════════════
+// ARHIVARE CLIENT
+// ═══════════════════════════════════════════════════
+function archiveClient(id) {
+  const idx = clients.findIndex(c => c.id === id);
+  if (idx < 0) return;
+  clients[idx].archived = true;
+  clients[idx].archivedAt = new Date().toISOString();
+  saveClients();
+  renderAll();
+  renderWsBar();
+  closeModal('modal-detail');
+  showToast('📦 Client arhivat — îl găsești în filtrul Arhivă', 'info');
+}
+
+function unarchiveClient(id) {
+  const idx = clients.findIndex(c => c.id === id);
+  if (idx < 0) return;
+  delete clients[idx].archived;
+  delete clients[idx].archivedAt;
+  saveClients();
+  renderAll();
+  showToast('✅ Client reactivat', 'success');
+}
+
+
+// ═══════════════════════════════════════════════════
+// CĂUTARE GLOBALĂ (toate workspace-urile)
+// ═══════════════════════════════════════════════════
+function globalSearch() {
+  const term = (document.getElementById('search-input').value || '').trim().toLowerCase();
+  if (!term) { showToast('Scrie ceva în căutare întâi, apoi apasă 🌐', 'info'); return; }
+
+  let results = [];
+  workspaces.forEach(ws => {
+    const wsClients = JSON.parse(localStorage.getItem('crm_clients_' + ws.id) || '[]');
+    wsClients.forEach(c => {
+      const hay = [c.companie, c.contact, c.brand, c.email, c.telefon].filter(Boolean).join(' ').toLowerCase();
+      const notesHay = (c.notes||[]).map(n => n.text).join(' ').toLowerCase();
+      if (hay.includes(term) || notesHay.includes(term)) {
+        results.push({ ws, client: c });
+      }
+    });
+  });
+
+  if (results.length === 0) { showToast('🌐 Nimic găsit în niciun workspace pentru "' + term + '"', 'info'); return; }
+
+  // Modal cu rezultate
+  const existing = document.getElementById('global-search-modal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'global-search-modal';
+  modal.className = 'modal-overlay open';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:520px">
+      <div class="modal-header">
+        <div class="modal-title">🌐 Rezultate globale (${results.length})</div>
+        <button class="close-btn" onclick="document.getElementById('global-search-modal').remove()">×</button>
+      </div>
+      <div class="modal-body" style="max-height:60vh;overflow-y:auto">
+        ${results.map(r => `
+          <div onclick="goToGlobalResult('${r.ws.id}','${r.client.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px">
+            <div>
+              <div style="font-weight:600;font-size:13px">${r.client.companie}${r.client.archived ? ' <span style="font-size:10px;color:var(--text-dim)">📦 arhivat</span>' : ''}</div>
+              <div style="font-size:11px;color:var(--text-muted)">${r.client.contact || r.client.brand || ''}</div>
+            </div>
+            <span style="font-size:11px;color:${r.ws.color};white-space:nowrap">${r.ws.emoji||''} ${r.ws.name}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
+}
+
+function goToGlobalResult(wsId, clientId) {
+  const m = document.getElementById('global-search-modal');
+  if (m) m.remove();
+  if (wsId !== activeWsId) {
+    switchWorkspace(wsId);
+  }
+  setTimeout(() => openDetail(clientId), 200);
+}
+
 // ── INIT ──
 // Override saveClients cu versiunea cu auto-sync
 saveClients = saveClientsAndSync;
 loadAll();
 loadDriveConfig();
+
+// Auto-încărcare din Drive la deschidere (dacă e configurat)
+setTimeout(() => {
+  if (driveConfig.webAppUrl) {
+    syncFromDrive(true); // silent = fără toast de eroare dacă nu merge
+  }
+}, 800);
 
 // Avertizare la închidere dacă există modificări nesalvate în Drive
 let _unsavedChanges = false;
