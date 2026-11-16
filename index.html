@@ -479,7 +479,9 @@ try { if (localStorage.getItem('crm_theme') === 'light') document.documentElemen
 
   @media (max-width: 600px) {
     .tgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 4px 10px 10px; }
-    .tcard { height: 124px; }
+    .tcard { height: auto; min-height: 54px; padding: 7px 8px; }
+    .tcard-note { -webkit-line-clamp: 1; margin-top: 3px; }
+    .tcard-foot { padding-top: 5px; }
     .header-date { padding: 0 4px; flex: 0 1 auto; }
     .header-date .hd-date { font-size: 13px; }
     .header-date .hd-day { font-size: 10px; }
@@ -544,7 +546,7 @@ try { if (localStorage.getItem('crm_theme') === 'light') document.documentElemen
   </div>
   <div class="header-date" id="header-date"></div>
   <div class="header-actions">
-    <button class="btn btn-ghost btn-sm" onclick="openWsSettings()" title="Setări">⚙</button>
+    <button class="btn btn-ghost" id="fb-chip" data-st="off" onclick="fbChipClick()" title="Sincronizare cloud"><span class="fb-dot"></span><span class="fb-txt">Conectare</span></button>
     <button class="btn btn-ghost" id="btn-sync-down" onclick="syncFromDrive()" title="Încarcă din Drive" style="color:var(--blue);border-color:var(--blue);padding:8px 14px;font-size:16px;margin-left:4px">⬇</button>
     <button class="btn btn-ghost" id="btn-sync-up" onclick="syncToDrive()" title="Salvează în Drive" style="color:var(--green);border-color:var(--green);padding:8px 14px;font-size:16px;margin-left:4px">☁</button>
     <button class="btn btn-primary btn-sm" onclick="openAddClient()" style="margin-left:8px">+ Client</button>
@@ -663,6 +665,24 @@ try { if (localStorage.getItem('crm_theme') === 'light') document.documentElemen
         <button class="btn btn-danger btn-sm" onclick="clearAllData()">🗑 Șterge clienți</button>
       </div>
     </div>
+    <!-- CLOUD (FIREBASE) -->
+    <div class="config-box" id="fb-box">
+      <div class="config-title">
+        <div class="config-status" id="fb-status-dot" style="background:var(--red)"></div>
+        ☁ Cont și sincronizare în timp real
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;line-height:1.7">
+        Conectează-te cu același cont Google pe fiecare dispozitiv: orice modificare apare pe celelalte în câteva secunde, fără butoane de salvare. Fără internet, aplicația merge în continuare și urcă modificările când revine conexiunea.
+      </p>
+      <p style="font-size:11px;color:var(--text-dim);margin-bottom:6px">Versiune aplicație: <span id="app-version"></span></p>
+      <p id="fb-info" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;line-height:1.7"></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-primary btn-sm" id="fb-btn-in" onclick="fbSignIn()">Conectare cu Google</button>
+        <button class="btn btn-ghost btn-sm" id="fb-btn-out" onclick="fbSignOut()" style="display:none">Deconectare</button>
+        <button class="btn btn-ghost btn-sm" id="fb-btn-force" onclick="fbForceUpload()" style="display:none">⬆ Urcă din nou toate datele de aici</button>
+        <button class="btn btn-ghost btn-sm" id="fb-btn-restore" onclick="fbRestoreBackup()" style="display:none">↩ Restaurează copia de dinaintea conectării</button>
+      </div>
+    </div>
     <!-- GOOGLE DRIVE SYNC -->
     <div class="config-box">
       <div class="config-title">
@@ -671,6 +691,7 @@ try { if (localStorage.getItem('crm_theme') === 'light') document.documentElemen
       </div>
       <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.7">
         Datele se salvează automat în Google Drive — aceleași date pe orice device.<br>
+        <em>Cu sincronizarea cloud de mai sus activă, Drive rămâne doar o copie (din ea pleacă emailul de dimineață): se scrie automat, dar nu se mai încarcă singur la deschidere.</em><br>
         <strong style="color:var(--text)">Setup (o singură dată, 5 min):</strong><br>
         1) Mergi la <a href="https://script.google.com" target="_blank" style="color:var(--purple-light)">script.google.com</a> → proiect nou<br>
         2) Șterge codul existent și copiază scriptul de mai jos<br>
@@ -2013,6 +2034,7 @@ async function syncToDrive() {
 
   // ── Detectare conflicte: verifică dacă altcineva a salvat între timp ──
   try {
+    if (window.FB_ACTIVE) throw 0; // cloud-ul e sursa de adevăr; Drive e doar copie
     const checkRes = await fetch(driveConfig.webAppUrl + '?action=read&t=' + Date.now());
     const remote = await checkRes.json();
     if (remote.savedAt && driveConfig.lastLoadedAt && remote.savedAt !== driveConfig.lastLoadedAt) {
@@ -3165,7 +3187,7 @@ loadDriveConfig();
 
 // Auto-încărcare din Drive la deschidere (dacă e configurat)
 setTimeout(() => {
-  if (driveConfig.webAppUrl) {
+  if (driveConfig.webAppUrl && !localStorage.getItem('crm_fb_uid')) {
     syncFromDrive(true); // silent = fără toast de eroare dacă nu merge
   }
 }, 800);
@@ -3193,6 +3215,327 @@ window.addEventListener('beforeunload', function(e) {
     return e.returnValue;
   }
 });
+</script>
+<style>
+  #fb-chip { padding: 8px 12px; font-size: 13px; margin-left: 4px; white-space: nowrap; }
+  #fb-chip .fb-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; background: var(--text-dim); }
+  #fb-chip[data-st="ok"] .fb-dot { background: var(--green); }
+  #fb-chip[data-st="sync"] .fb-dot { background: var(--blue); }
+  #fb-chip[data-st="err"] .fb-dot { background: var(--red); }
+  @media (max-width: 600px) { #fb-chip .fb-txt { display: none; } #fb-chip .fb-dot { margin-right: 0; } #fb-chip { padding: 8px 9px; margin-left: 0; }
+    #btn-sync-down, #btn-sync-up { padding: 5px 6px !important; margin-left: 0 !important; font-size: 13px !important; line-height: 1.2; }
+    #fb-chip { padding: 7px 8px; }
+    .header { gap: 6px; }
+    .header .ws-name-display { flex: 1 1 0; min-width: 0; overflow: hidden; }
+    .header .ws-name-display > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .header .header-date { flex: 0 0 auto; }
+    .header .header-actions { flex: 0 0 auto; gap: 4px; }
+    .header-actions .btn-primary { margin-left: 0 !important; white-space: nowrap; padding: 8px 10px; } }
+  #fb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  #fb-overlay .fb-card { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 14px; padding: 20px; max-width: 440px; width: 100%; font-size: 13px; line-height: 1.6; }
+  #fb-overlay .fb-card h3 { font-size: 16px; margin: 0 0 10px; }
+  #fb-overlay .fb-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+</style>
+<script>
+// ═══════════════════════════════════════════════════
+// SINCRONIZARE CLOUD (Firebase: login Google + Firestore)
+// Datele rămân și în localStorage (aplicația merge și offline);
+// fiecare cheie de date are un document propriu în contul utilizatorului.
+// ═══════════════════════════════════════════════════
+const FB_CONFIG = {
+  apiKey: "AIzaSyByHNQWaFfT9R1jFn7euL2Kr2_2XEeik98",
+  authDomain: "crm-sanatate-e722a.firebaseapp.com",
+  projectId: "crm-sanatate-e722a",
+  storageBucket: "crm-sanatate-e722a.firebasestorage.app",
+  messagingSenderId: "384875310055",
+  appId: "1:384875310055:web:b375777c014c8529e8ab42"
+};
+const FB_SDK = 'https://www.gstatic.com/firebasejs/10.14.1/';
+const FB_COL = 'cyungyscrm';                 // utilizatori/{uid}/cyungyscrm/{cheie}
+const FB_SYNC_RE = /^crm_(workspaces|clients_.+|tasks_personal|reminders|emailjs_.+)$/;
+const FB_MAX_DOC = 900000;                   // limita Firestore e 1 MiB pe document
+
+let fbUser = null, fbDb = null, fbUnsub = null, fbReady = false, fbApplying = false;
+let fbLinked = false, fbSdkLoading = null, fbPushTimer = null, fbInFlight = 0, fbLastSync = null;
+let fbDirty = new Set();
+try { fbDirty = new Set(JSON.parse(localStorage.getItem('crm_fb_dirty') || '[]')); } catch (e) {}
+window.FB_ACTIVE = false;                    // true = cloud-ul e sursa de adevăr (Drive devine doar copie)
+
+function fbSaveDirty() { try { _fbLsSet.call(localStorage, 'crm_fb_dirty', JSON.stringify([...fbDirty])); } catch (e) {} }
+function fbSyncedKeys() { const out = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (FB_SYNC_RE.test(k)) out.push(k); } return out; }
+function fbCol() { return fbDb.collection('utilizatori').doc(fbUser.uid).collection(FB_COL); }
+
+// Orice scriere în localStorage pe o cheie de date e marcată pentru urcare în cloud.
+const _fbLsSet = Storage.prototype.setItem;
+const _fbLsRemove = Storage.prototype.removeItem;
+Storage.prototype.setItem = function (k, v) {
+  const track = this === window.localStorage && !fbApplying && FB_SYNC_RE.test(k);
+  const old = track ? this.getItem(k) : null;
+  _fbLsSet.apply(this, arguments);
+  if (track && old !== String(v)) fbMarkDirty(k);
+};
+
+function fbMarkDirty(k) {
+  fbDirty.add(k); fbSaveDirty();
+  if (fbLinked) { clearTimeout(fbPushTimer); fbPushTimer = setTimeout(fbPushDirty, 600); fbRenderStatus(); }
+}
+
+function fbPushDirty() {
+  if (!fbLinked || !fbUser || !fbDb) return;
+  [...fbDirty].forEach(k => {
+    const v = localStorage.getItem(k);
+    if (v == null) { fbDirty.delete(k); fbSaveDirty(); return; }
+    if (v.length > FB_MAX_DOC) { showToast('⚠ „' + k + '” e prea mare pentru cloud. Arhivează sau exportă o parte din date.', 'error'); return; }
+    fbInFlight++; fbRenderStatus();
+    fbCol().doc(k).set({ json: v, ts: Date.now() }).then(() => {
+      // Dacă între timp cheia s-a schimbat din nou, rămâne marcată și pleacă la următoarea urcare.
+      if (localStorage.getItem(k) === v) { fbDirty.delete(k); fbSaveDirty(); }
+      else { clearTimeout(fbPushTimer); fbPushTimer = setTimeout(fbPushDirty, 300); }
+      fbLastSync = new Date();
+    }).catch(e => { console.warn('Firebase: urcare eșuată', k, e); fbErr = fbErrText(e); })
+      .then(() => { fbInFlight--; fbRenderStatus(); });
+  });
+}
+
+let fbErr = '';
+function fbErrText(e) {
+  const c = (e && e.code) || '';
+  if (c.indexOf('permission-denied') >= 0) return 'Acces refuzat de regulile Firestore.';
+  if (c.indexOf('unauthorized-domain') >= 0) return 'Domeniul nu e autorizat: adaugă cyungys.github.io în Firebase → Authentication → Settings → Authorized domains.';
+  if (c.indexOf('popup-closed') >= 0 || c.indexOf('cancelled-popup') >= 0) return 'Fereastra de conectare a fost închisă.';
+  if (c.indexOf('network') >= 0 || c.indexOf('unavailable') >= 0) return 'Fără conexiune la internet.';
+  return (e && e.message) || 'Eroare necunoscută.';
+}
+
+// Aplică în aplicație datele venite de pe alt dispozitiv.
+function fbApplyRemote(docs) {
+  const changed = [];
+  fbApplying = true;
+  try {
+    docs.forEach(d => {
+      const k = d.id, data = d.data() || {};
+      if (!FB_SYNC_RE.test(k) || typeof data.json !== 'string') return;
+      if (fbDirty.has(k)) return;                       // am o modificare locală mai nouă, în curs de urcare
+      if (localStorage.getItem(k) === data.json) return;
+      _fbLsSet.call(localStorage, k, data.json); changed.push(k);
+    });
+  } finally { fbApplying = false; }
+  if (changed.length) { fbLastSync = new Date(); fbRefreshUI(changed); }
+  return changed;
+}
+
+function fbRefreshUI(keys) {
+  try {
+    if (keys.indexOf('crm_workspaces') >= 0) {
+      workspaces = JSON.parse(localStorage.getItem('crm_workspaces') || '[]');
+      if (!workspaces.find(w => w.id === activeWsId) && workspaces.length) { loadWorkspace(workspaces[0].id); return; }
+      renderWsBar(); renderWsHeader();
+    }
+    if (keys.indexOf('crm_clients_' + activeWsId) >= 0) clients = JSON.parse(localStorage.getItem('crm_clients_' + activeWsId) || '[]');
+    if (keys.indexOf('crm_tasks_personal') >= 0) loadTasks();
+    if (keys.indexOf('crm_reminders') >= 0) loadReminders();
+    if (keys.some(k => k.indexOf('crm_emailjs_') === 0)) loadEmailJSConfig();
+    renderAll();
+    if (activeWsId === 'ws_personal') { renderTasks(); updateTasksBadge(); if (typeof renderDepasite === 'function') renderDepasite(); }
+  } catch (e) { console.warn('Firebase: reîmprospătare eșuată', e); }
+}
+
+function fbListen() {
+  if (fbUnsub) fbUnsub();
+  fbUnsub = fbCol().onSnapshot(snap => {
+    const docs = [];
+    snap.docChanges().forEach(ch => { if (ch.type !== 'removed' && !ch.doc.metadata.hasPendingWrites) docs.push(ch.doc); });
+    fbApplyRemote(docs);
+    fbErr = ''; fbRenderStatus();
+  }, e => { console.warn('Firebase: ascultare eșuată', e); fbErr = fbErrText(e); fbRenderStatus(); });
+}
+
+function fbHasLocalData() {
+  return fbSyncedKeys().some(k => {
+    if (k === 'crm_workspaces' || k.indexOf('crm_emailjs_') === 0) return false;
+    try { const v = JSON.parse(localStorage.getItem(k)); return Array.isArray(v) && v.length > 0; } catch (e) { return false; }
+  });
+}
+
+function fbBackupLocal() {
+  const b = { at: new Date().toISOString(), data: {} };
+  fbSyncedKeys().forEach(k => { b.data[k] = localStorage.getItem(k); });
+  try { _fbLsSet.call(localStorage, 'crm_fb_backup', JSON.stringify(b)); } catch (e) { console.warn('Firebase: copia locală nu a încăput', e); }
+}
+
+function fbUploadAllLocal() { fbSyncedKeys().forEach(k => fbDirty.add(k)); fbSaveDirty(); }
+
+// Întrebare cu două butoane clare (în loc de OK/Cancel).
+function fbChoose(title, html, a, b) {
+  return new Promise(res => {
+    const o = document.createElement('div'); o.id = 'fb-overlay';
+    o.innerHTML = '<div class="fb-card"><h3>' + title + '</h3><div>' + html + '</div><div class="fb-btns">' +
+      '<button class="btn btn-primary" id="fb-ch-a">' + a + '</button><button class="btn btn-ghost" id="fb-ch-b">' + b + '</button></div></div>';
+    document.body.appendChild(o);
+    o.querySelector('#fb-ch-a').onclick = () => { o.remove(); res('a'); };
+    o.querySelector('#fb-ch-b').onclick = () => { o.remove(); res('b'); };
+  });
+}
+
+// Prima conectare a acestui dispozitiv la cont: stabilim de unde pornesc datele.
+async function fbFirstLink() {
+  const snap = await fbCol().get();
+  const cloudDocs = snap.docs.filter(d => FB_SYNC_RE.test(d.id) && typeof (d.data() || {}).json === 'string');
+  if (!cloudDocs.length) {
+    fbUploadAllLocal();
+    showToast('☁ Datele de pe acest dispozitiv au fost urcate în cloud.', 'success');
+    return;
+  }
+  const same = cloudDocs.every(d => localStorage.getItem(d.id) === d.data().json);
+  if (same) { fbDirty.clear(); fbSaveDirty(); return; }
+  let pick = 'a';
+  if (fbHasLocalData()) {
+    pick = await fbChoose('Ce date păstrăm?',
+      'În cloud există deja date CRM, iar pe acest dispozitiv sunt date diferite.<br><br>' +
+      '<strong>Datele din cloud</strong> = cele urcate de pe dispozitivul pe care te-ai conectat primul.<br>' +
+      'Datele de pe acest dispozitiv se păstrează oricum într-o copie de siguranță (Setări → Restaurează copia).',
+      '☁ Folosesc datele din cloud (recomandat)', '📱 Urc datele de pe acest dispozitiv (suprascrie cloud-ul)');
+  }
+  if (pick === 'a') {
+    fbBackupLocal(); fbDirty.clear(); fbSaveDirty();
+    fbApplyRemote(cloudDocs);
+    showToast('☁ Date încărcate din cloud.', 'success');
+  } else {
+    fbUploadAllLocal();
+    showToast('☁ Datele de pe acest dispozitiv se urcă în cloud.', 'info');
+  }
+}
+
+async function fbOnUser(user) {
+  fbUser = user; fbLinked = false; window.FB_ACTIVE = false;
+  if (fbUnsub) { fbUnsub(); fbUnsub = null; }
+  fbRenderStatus();
+  if (!user) return;
+  try {
+    if (localStorage.getItem('crm_fb_uid') !== user.uid) {
+      await fbFirstLink();
+      _fbLsSet.call(localStorage, 'crm_fb_uid', user.uid);
+    }
+    fbLinked = true; window.FB_ACTIVE = true; fbErr = '';
+    fbPushDirty();
+    fbListen();
+  } catch (e) { console.warn('Firebase: conectare eșuată', e); fbErr = fbErrText(e); }
+  fbRenderStatus();
+}
+
+function fbLoadSdk() {
+  if (window.firebase && firebase.firestore && firebase.auth) return Promise.resolve();
+  if (fbSdkLoading) return fbSdkLoading;
+  const one = name => new Promise((ok, fail) => {
+    const s = document.createElement('script'); s.src = FB_SDK + name; s.onload = ok;
+    s.onerror = () => { s.remove(); fail(new Error('SDK indisponibil')); }; document.head.appendChild(s);
+  });
+  fbSdkLoading = one('firebase-app-compat.js').then(() => one('firebase-auth-compat.js')).then(() => one('firebase-firestore-compat.js'))
+    .catch(e => { fbSdkLoading = null; throw e; });
+  return fbSdkLoading;
+}
+
+function fbStart() {
+  if (fbReady) return Promise.resolve();
+  return fbLoadSdk().then(() => {
+    if (fbReady) return;
+    if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+    fbDb = firebase.firestore();
+    fbReady = true;
+    firebase.auth().onAuthStateChanged(fbOnUser);
+  }).catch(() => { fbRenderStatus(); });
+}
+
+function fbSignIn() {
+  fbStart().then(() => {
+    if (!fbReady) { showToast('Fără internet: conectarea se face când revine conexiunea.', 'error'); return; }
+    const p = new firebase.auth.GoogleAuthProvider();
+    p.setCustomParameters({ prompt: 'select_account' });
+    firebase.auth().signInWithPopup(p).catch(e => {
+      if (e && e.code === 'auth/popup-blocked') return firebase.auth().signInWithRedirect(p);
+      fbErr = fbErrText(e); fbRenderStatus(); showToast('❌ ' + fbErr, 'error');
+    });
+  });
+}
+
+function fbSignOut() {
+  if (!fbReady || !fbUser) return;
+  if (fbDirty.size && !confirm('Mai sunt modificări care nu au ajuns în cloud. Te deconectezi oricum?')) return;
+  _fbLsRemove.call(localStorage, 'crm_fb_uid');
+  firebase.auth().signOut().then(() => showToast('Deconectat. Datele rămân pe acest dispozitiv.', 'info'));
+}
+
+function fbForceUpload() {
+  if (!fbLinked) return;
+  if (!confirm('Urc toate datele de pe acest dispozitiv în cloud și suprascriu ce e acolo. Continui?')) return;
+  fbUploadAllLocal(); fbPushDirty();
+}
+
+function fbRestoreBackup() {
+  let b; try { b = JSON.parse(localStorage.getItem('crm_fb_backup')); } catch (e) {}
+  if (!b || !b.data) { showToast('Nu există o copie de siguranță.', 'info'); return; }
+  if (!confirm('Restaurez datele de pe acest dispozitiv din ' + new Date(b.at).toLocaleString('ro-RO') + '? Ele vor înlocui datele curente, inclusiv în cloud.')) return;
+  Object.keys(b.data).forEach(k => localStorage.setItem(k, b.data[k]));
+  fbRefreshUI(Object.keys(b.data)); loadWorkspace(activeWsId);
+  showToast('↩ Copia a fost restaurată.', 'success');
+}
+
+function fbChipClick() {
+  if (!fbUser) { fbSignIn(); return; }
+  switchInnerTab('setari', document.querySelector('[data-tab="setari"]'));
+  const box = document.getElementById('fb-box'); if (box && box.scrollIntoView) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function fbRenderStatus() {
+  const online = navigator.onLine !== false;
+  let st = 'off', txt = 'Conectare';
+  if (fbUser && fbErr) { st = 'err'; txt = 'Eroare'; }
+  else if (fbUser && !online) { st = 'off'; txt = 'Offline'; }
+  else if (fbUser && (fbInFlight > 0 || fbDirty.size > 0 || !fbLinked)) { st = 'sync'; txt = 'Se salvează'; }
+  else if (fbUser) { st = 'ok'; txt = 'Sincronizat'; }
+  else if (!online) { txt = 'Offline'; }
+  const chip = document.getElementById('fb-chip');
+  if (chip) { chip.dataset.st = st; chip.querySelector('.fb-txt').textContent = txt; chip.title = fbUser ? 'Cloud: ' + fbUser.email : 'Conectează-te cu Google pentru sincronizare'; }
+  // Cu cloud-ul activ, butoanele manuale de Drive din antet nu mai sunt necesare.
+  ['btn-sync-down', 'btn-sync-up'].forEach(id => { const b = document.getElementById(id); if (b) b.style.display = fbUser ? 'none' : ''; });
+  const dot = document.getElementById('fb-status-dot'); if (dot) dot.style.background = st === 'ok' || st === 'sync' ? 'var(--green)' : 'var(--red)';
+  const info = document.getElementById('fb-info');
+  if (info) {
+    if (fbUser) {
+      info.innerHTML = 'Conectat ca <strong style="color:var(--text)">' + escHtml(fbUser.email || '') + '</strong>. ' +
+        (fbErr ? '<span style="color:var(--red)">' + escHtml(fbErr) + '</span>' :
+          !online ? 'Fără internet: modificările se urcă singure când revine conexiunea.' :
+          fbDirty.size ? 'Se urcă modificările…' :
+          'Totul e salvat' + (fbLastSync ? ' (ultima sincronizare ' + fbLastSync.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) + ')' : '') + '.');
+    } else {
+      info.innerHTML = 'Neconectat. Datele stau doar pe acest dispozitiv' + (fbErr ? ' — <span style="color:var(--red)">' + escHtml(fbErr) + '</span>' : '.') ;
+    }
+  }
+  const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+  show('fb-btn-in', !fbUser); show('fb-btn-out', !!fbUser); show('fb-btn-force', fbLinked);
+  show('fb-btn-restore', !!localStorage.getItem('crm_fb_backup'));
+}
+
+// ═══ VERSIUNE: aplicația își ia singură ultima versiune publicată (ocolește cache-ul browserului) ═══
+const APP_VERSION = '2026.11.16-3';
+function checkAppVersion() {
+  if (location.protocol.indexOf('http') !== 0) return;
+  fetch(location.pathname + '?vc=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.text() : '').then(t => {
+    const m = t.match(/const APP_VERSION = '([^']+)'/);
+    if (!m || m[1] === APP_VERSION) return;
+    if (sessionStorage.getItem('crm_ver_try') === m[1]) return;   // o singură încercare pe sesiune, fără bucle
+    sessionStorage.setItem('crm_ver_try', m[1]);
+    location.replace(location.pathname + '?v=' + encodeURIComponent(m[1]));
+  }).catch(() => {});
+}
+(function () { const v = document.getElementById('app-version'); if (v) v.textContent = APP_VERSION; })();
+setTimeout(checkAppVersion, 1500);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkAppVersion(); });
+
+window.addEventListener('online', () => { fbRenderStatus(); fbStart().then(() => { if (fbLinked) fbPushDirty(); else if (fbUser) fbOnUser(fbUser); }); });
+window.addEventListener('offline', fbRenderStatus);
+fbRenderStatus();
+fbStart();
 </script>
 <script>
 if ('serviceWorker' in navigator) {
