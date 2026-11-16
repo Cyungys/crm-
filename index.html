@@ -693,10 +693,11 @@ try { if (localStorage.getItem('crm_theme') === 'light') document.documentElemen
         Datele se salvează automat în Google Drive — aceleași date pe orice device.<br>
         <em>Cu sincronizarea cloud de mai sus activă, Drive rămâne doar o copie (din ea pleacă emailul de dimineață): se scrie automat, dar nu se mai încarcă singur la deschidere.</em><br>
         <strong style="color:var(--text)">Setup (o singură dată, 5 min):</strong><br>
-        1) Mergi la <a href="https://script.google.com" target="_blank" style="color:var(--purple-light)">script.google.com</a> → proiect nou<br>
+        1) Mergi la <a href="https://script.google.com" target="_blank" style="color:var(--purple-light)">script.google.com</a>, logat cu contul de pe care vrei să plece emailurile → proiect nou<br>
         2) Șterge codul existent și copiază scriptul de mai jos<br>
         3) Deploy → New Deployment → Web App → Execute as: Me → Who has access: Anyone → Deploy<br>
-        4) Copiezi URL-ul și îl pui în câmpul de mai jos
+        4) Copiezi URL-ul și îl pui în câmpul de mai jos (ajunge singur pe celelalte dispozitive conectate)<br>
+        5) În Apps Script alegi funcția <strong style="color:var(--text)">instaleaza</strong> → Run → accepți permisiunile (pornește emailurile de dimineață și reminderele)
       </p>
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px">
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;font-weight:600">Script Google Apps Script:</div>
@@ -1828,136 +1829,298 @@ document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('cli
 // ═══════════════════════════════════════════════════
 // GOOGLE DRIVE SYNC
 // ═══════════════════════════════════════════════════
-const APPS_SCRIPT_CODE = `// Invent CRM - Google Drive Sync Script
-// Copiază tot acest cod în Google Apps Script
+const APPS_SCRIPT_CODE = `// ═══════════════════════════════════════════════════════════════
+// CyungysCRM — script Google: copie în Drive + emailuri de dimineață + remindere
+// Se instalează pe contul radunicolae.inventmedia.ro@gmail.com (de pe el pleacă emailurile).
+// După ce îl lipești: rulează o dată funcția  instaleaza  și acceptă permisiunile.
+// ═══════════════════════════════════════════════════════════════
 
-const FILE_NAME = 'InventCRM_data.json';
+var CFG = {
+  FISIER: 'InventCRM_data.json',            // copia datelor, în Drive-ul acestui cont
+  FUS: 'Europe/Bucharest',
+  ORA_BRIEFING: 7,                          // emailurile de dimineață
+  EMAIL_PERSONAL: 'radunicolaeserban@gmail.com',      // unde ajunge emailul Personal
+  EMAIL_MUNCA_IMPLICIT: 'radunicolaeserban@gmail.com', // unde ajung emailurile entităților de muncă
+  EMAIL_MUNCA: {                            // opțional, altă adresă pentru o entitate anume
+    // ws_invent: 'radu.nicolae@inventmedia.ro'
+  },
+  NUME_EXPEDITOR: 'Cyungys CRM',
+  LINK_CRM: 'https://cyungys.github.io/crm-/',
+  CATEGORII_PERSONAL: ['todo', 'personal', 'sasha'],   // Sport, Financiar, Medical nu apar niciodată
+  BACKUPURI_PASTRATE: 4
+};
 
+var CAT = {
+  todo: { nume: 'To-do', culoare: '#7B4DB5' },
+  personal: { nume: 'Personal', culoare: '#1F78C1' },
+  sasha: { nume: 'Sasha', culoare: '#0F9488' },
+  sport: { nume: 'Sport', culoare: '#E91E8C' },
+  financiar: { nume: 'Financiar', culoare: '#1E9E57' },
+  medical: { nume: 'Medical', culoare: '#D0392B' }
+};
+var STATUS = { lead: 'Lead', oferta: 'Ofertă trimisă', negociere: 'Negociere', castigat: 'Câștigat', pierdut: 'Pierdut' };
+var ZILE = ['duminică', 'luni', 'marți', 'miercuri', 'joi', 'vineri', 'sâmbătă'];
+var LUNI = ['ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie', 'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'];
+
+// ───────────────────────── COPIA ÎN DRIVE (folosită de CRM) ─────────────────────────
 function doGet(e) {
-  try {
-    const action = e.parameter.action || 'read';
-    if (action === 'read') {
-      return ContentService.createTextOutput(readData()).setMimeType(ContentService.MimeType.JSON);
-    }
-  } catch(err) {
-    return ContentService.createTextOutput(JSON.stringify({error: err.toString()})).setMimeType(ContentService.MimeType.JSON);
-  }
+  return raspuns(citesteText() || JSON.stringify({ gol: true, version: 2 }));
 }
 
 function doPost(e) {
   try {
-    const data = e.postData.contents;
-    writeData(data);
-    return ContentService.createTextOutput(JSON.stringify({ok: true, ts: new Date().toISOString()})).setMimeType(ContentService.MimeType.JSON);
-  } catch(err) {
-    return ContentService.createTextOutput(JSON.stringify({error: err.toString()})).setMimeType(ContentService.MimeType.JSON);
+    var text = e.postData.contents;
+    var d = JSON.parse(text);
+    if (!d || !Array.isArray(d.workspaces)) throw new Error('Date nevalide');
+    var lacat = LockService.getScriptLock();
+    lacat.waitLock(20000);
+    try { scrieText(text); } finally { lacat.releaseLock(); }
+    return raspuns(JSON.stringify({ ok: true, ts: new Date().toISOString() }));
+  } catch (err) {
+    return raspuns(JSON.stringify({ error: String(err) }));
   }
 }
 
-function readData() {
-  const files = DriveApp.getFilesByName(FILE_NAME);
-  if (!files.hasNext()) return JSON.stringify({workspaces:[], clients:{}, emailjs:{}, version:1});
-  return files.next().getBlob().getDataAsString();
+function raspuns(text) { return ContentService.createTextOutput(text).setMimeType(ContentService.MimeType.JSON); }
+
+function fisierDate() {
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty('ID_FISIER');
+  if (id) { try { var f = DriveApp.getFileById(id); if (!f.isTrashed()) return f; } catch (err) {} }
+  var gasite = DriveApp.getFilesByName(CFG.FISIER);
+  while (gasite.hasNext()) { var g = gasite.next(); if (!g.isTrashed()) { props.setProperty('ID_FISIER', g.getId()); return g; } }
+  return null;
+}
+function citesteText() { var f = fisierDate(); return f ? f.getBlob().getDataAsString() : ''; }
+function scrieText(text) {
+  var f = fisierDate();
+  if (f) f.setContent(text);
+  else PropertiesService.getScriptProperties().setProperty('ID_FISIER', DriveApp.createFile(CFG.FISIER, text, MimeType.PLAIN_TEXT).getId());
+}
+function citesteCRM() { var t = citesteText(); if (!t) return null; try { return JSON.parse(t); } catch (err) { return null; } }
+
+// ───────────────────────── DATE ȘI TEXT ─────────────────────────
+function azi() { return Utilities.formatDate(new Date(), CFG.FUS, 'yyyy-MM-dd'); }
+function plusZile(iso, n) { var d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+function diferentaZile(a, b) { return Math.round((new Date(b + 'T12:00:00Z') - new Date(a + 'T12:00:00Z')) / 86400000); }
+function ziuaDin(marcajTimp) { try { return Utilities.formatDate(new Date(marcajTimp), CFG.FUS, 'yyyy-MM-dd'); } catch (err) { return ''; } }
+function numeZi(iso) { return ZILE[new Date(iso + 'T12:00:00Z').getUTCDay()]; }
+function dataLunga(iso) { var d = new Date(iso + 'T12:00:00Z'); var z = numeZi(iso); return z.charAt(0).toUpperCase() + z.slice(1) + ', ' + d.getUTCDate() + ' ' + LUNI[d.getUTCMonth()]; }
+function dataScurta(iso) { var d = new Date(iso + 'T12:00:00Z'); return d.getUTCDate() + ' ' + LUNI[d.getUTCMonth()].slice(0, 3) + '.'; }
+function esc(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function scurt(t, n) { t = String(t || '').replace(/\\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; }
+
+// Eticheta „când”: restanță / azi / mâine / ziua săptămânii
+function cand(iso, astazi) {
+  var n = diferentaZile(astazi, iso);
+  if (n < 0) return { text: 'restanță ' + (-n) + (n === -1 ? ' zi' : ' zile'), restant: true };
+  if (n === 0) return { text: 'azi', restant: false };
+  if (n === 1) return { text: 'mâine', restant: false };
+  return { text: numeZi(iso), restant: false };
 }
 
-function writeData(data) {
-  const files = DriveApp.getFilesByName(FILE_NAME);
-  if (files.hasNext()) {
-    files.next().setContent(data);
-  } else {
-    DriveApp.createFile(FILE_NAME, data, MimeType.PLAIN_TEXT);
-  }
-}
+// ───────────────────────── EMAILURILE DE DIMINEAȚĂ ─────────────────────────
+function trimiteBriefinguri() { briefinguri(false, true, true); }
 
-// ── EMAIL DIMINEATA (trigger automat la 08:00) ──
-function sendMorningBriefing() {
-  const raw = readData();
-  const crm = JSON.parse(raw);
-  const today = new Date().toISOString().slice(0,10);
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0,10);
-
-  const cfg = crm.emailjs || {};
-  if (!cfg.publicKey || !cfg.serviceId || !cfg.templateId) return;
-
-  let allFollowups = [];
-  const workspaces = crm.workspaces || [];
-  const clientsMap = crm.clients || {};
-
-  workspaces.forEach(ws => {
-    const wsClients = clientsMap[ws.id] || [];
-    wsClients.forEach(c => {
-      if (!c.followup || c.status === 'castigat' || c.status === 'pierdut') return;
-      if (c.followup <= tomorrow) {
-        const STATUS = {lead:'Lead',oferta:'Ofertă trimisă',negociere:'Negociere',castigat:'Câștigat',pierdut:'Pierdut'};
-        allFollowups.push({
-          workspace: ws.name,
-          client: c.companie,
-          contact: c.contact || '—',
-          status: STATUS[c.status] || c.status,
-          medii: (c.medii || []).join(', '),
-          followup: c.followup,
-          urgenta: c.followup < today ? '🔴 ÎNTÂRZIAT' : c.followup === today ? '🔴 AZI' : '🟡 MÂINE',
-          lastNote: c.notes && c.notes.length ? c.notes[c.notes.length-1].text : '—'
-        });
-      }
+function briefinguri(test, cuPersonal, cuMunca) {
+  var crm = citesteCRM();
+  if (!crm) { Logger.log('Nu există încă date în Drive. Deschide CRM-ul și apasă „Salvează în Drive acum”.'); return; }
+  var astazi = azi();
+  if (cuPersonal) emailPersonal(crm, astazi, test);
+  if (cuMunca) {
+    (crm.workspaces || []).forEach(function (ws) {
+      if (ws.id === 'ws_personal') return;
+      emailMunca(crm, ws, astazi, test);
     });
-  });
-
-  if (allFollowups.length === 0) return; // nimic de trimis
-
-  let bodyText = '🌅 BRIEFING ZILNIC CRM - ' + today + '\n\n';
-  bodyText += '━━━━━━━━━━━━━━━━━━━━━━━━━\n';
-  bodyText += 'Follow-up-uri pentru AZI și MÂINE:\n\n';
-
-  allFollowups.forEach((f, i) => {
-    bodyText += (i+1) + ') ' + f.urgenta + ' ' + f.client + ' [' + f.workspace + ']\n';
-    bodyText += '   Contact: ' + f.contact + '\n';
-    bodyText += '   Status: ' + f.status + ' | Medii: ' + (f.medii || '—') + '\n';
-    bodyText += '   Data: ' + f.followup + '\n';
-    bodyText += '   Ultima notă: ' + f.lastNote + '\n\n';
-  });
-
-  bodyText += '━━━━━━━━━━━━━━━━━━━━━━━━━\n';
-  bodyText += 'Total: ' + allFollowups.length + ' follow-up-uri urgente\n';
-  bodyText += 'Trimis automat de Invent CRM la 08:00\n';
-
-  const url = 'https://api.emailjs.com/api/v1.0/email/send';
-  const payload = {
-    service_id: cfg.serviceId,
-    template_id: cfg.templateId,
-    user_id: cfg.publicKey,
-    template_params: {
-      to_email: cfg.toEmail || 'radunicolaeserban@gmail.com',
-      client_name: 'BRIEFING ZILNIC',
-      contact: allFollowups.length + ' follow-up-uri urgente',
-      status: 'Rezumat zilnic',
-      medii: allFollowups.map(f => f.client).join(', '),
-      followup_date: today,
-      followup_label: '🌅 Dimineata',
-      last_note: bodyText,
-      valoare: '',
-      workspace: 'Toate workspace-urile'
-    }
-  };
-
-  UrlFetchApp.fetch(url, {
-    method: 'post',
-    contentType: 'application/json',
-    payload: JSON.stringify(payload)
-  });
+  }
 }
 
-// ── SETUP TRIGGER (rulează o singură dată manual) ──
-function setupTrigger() {
-  // Șterge triggere existente
-  ScriptApp.getProjectTriggers().forEach(t => ScriptApp.deleteTrigger(t));
-  // Creează trigger la 08:00 în fiecare zi
-  ScriptApp.newTrigger('sendMorningBriefing')
-    .timeBased()
-    .everyDays(1)
-    .atHour(8)
-    .create();
-}`;
+function emailPersonal(crm, astazi, test) {
+  var limita = plusZile(astazi, 2), acum7 = plusZile(astazi, -7);
+  var taskuri = (crm.tasks || []).filter(function (t) { return CFG.CATEGORII_PERSONAL.indexOf(t.category || 'todo') >= 0; });
+  var deAzi = taskuri.filter(function (t) { return !t.done && t.deadline && t.deadline <= astazi; })
+    .sort(function (a, b) { return a.deadline < b.deadline ? -1 : 1; });
+  var urmeaza = taskuri.filter(function (t) { return !t.done && t.deadline && t.deadline > astazi && t.deadline <= limita; })
+    .sort(function (a, b) { return a.deadline < b.deadline ? -1 : 1; });
+  var facute = taskuri.filter(function (t) { return t.done && t.doneAt && ziuaDin(t.doneAt) >= acum7; })
+    .sort(function (a, b) { return a.doneAt < b.doneAt ? 1 : -1; });
+  if (!test && !deAzi.length && !urmeaza.length && !facute.length) { Logger.log('Personal: nimic de trimis azi.'); return; }
+
+  var rand = function (t, accent, cuCand) {
+    var c = CAT[t.category] || CAT.todo, k = cuCand ? cand(t.deadline, astazi) : null;
+    var dreapta = '<span style="display:inline-block;font-size:11px;font-weight:600;color:' + c.culoare + ';background:#F1ECF8;border-radius:10px;padding:2px 8px">' + c.nume + '</span>' +
+      '<div style="font-size:12px;font-weight:700;margin-top:6px;color:' + (k && k.restant ? '#D0392B' : accent) + '">' +
+      esc(k ? k.text : numeZi(ziuaDin(t.doneAt)) + ', ' + dataScurta(ziuaDin(t.doneAt))) + '</div>';
+    return '<tr><td style="padding:12px 16px;border-top:1px solid #EEE9F5"><table width="100%" cellpadding="0" cellspacing="0"><tr>' +
+      '<td style="font-family:Arial,sans-serif"><div style="font-size:15px;font-weight:700;color:#1E1630">' + (cuCand ? '' : '✓ ') + esc(t.title) + '</div>' +
+      (t.note ? '<div style="font-size:13px;color:#6B6180;margin-top:3px">' + esc(scurt(t.note, 140)) + '</div>' : '') + '</td>' +
+      '<td align="right" valign="top" style="font-family:Arial,sans-serif;white-space:nowrap;padding-left:10px">' + dreapta + '</td></tr></table></td></tr>';
+  };
+  var card = function (titlu, emoji, accent, lista, cuCand, gol) {
+    var randuri = lista.length ? lista.map(function (t) { return rand(t, accent, cuCand); }).join('') :
+      '<tr><td style="padding:12px 16px;border-top:1px solid #EEE9F5;font-family:Arial,sans-serif;font-size:13px;color:#8A80A0">' + gol + '</td></tr>';
+    return '<table width="100%" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border-radius:14px;border-left:5px solid ' + accent + ';margin-bottom:18px">' +
+      '<tr><td style="padding:16px 16px 12px;font-family:Arial,sans-serif"><span style="font-size:18px">' + emoji + '</span> ' +
+      '<span style="font-size:17px;font-weight:800;color:#1E1630">' + titlu + '</span> ' +
+      '<span style="font-size:13px;color:#8A80A0">· ' + lista.length + '</span></td></tr>' + randuri + '</table>';
+  };
+  var restante = deAzi.filter(function (t) { return t.deadline < astazi; }).length;
+  var html = '<table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F0F8"><tr><td align="center" style="padding:24px 12px">' +
+    '<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">' +
+    '<tr><td style="background:#5B2D8E;border-radius:16px;padding:22px 20px;font-family:Arial,sans-serif">' +
+    '<div style="font-size:12px;color:#D9C8F2;font-weight:700;letter-spacing:2px">CYUNGYS CRM · PERSONAL</div>' +
+    '<div style="font-size:26px;font-weight:800;color:#FFFFFF;margin-top:6px">' + dataLunga(astazi) + '</div>' +
+    '<div style="font-size:14px;color:#E9DFF7;margin-top:8px">' + deAzi.length + ' de făcut azi' + (restante ? ' (din care ' + restante + ' restante)' : '') +
+    ' · ' + urmeaza.length + ' în următoarele 2 zile · ' + facute.length + ' rezolvate în 7 zile</div></td></tr>' +
+    '<tr><td style="height:18px"></td></tr><tr><td>' +
+    card('Azi', '🔥', '#F47920', deAzi, true, 'Nimic programat pentru azi.') +
+    card('Următoarele 2 zile', '📅', '#3498DB', urmeaza, true, 'Nimic programat.') +
+    card('Făcute în ultimele 7 zile', '🏆', '#2ECC71', facute, false, 'Niciun task finalizat în ultimele 7 zile.') +
+    '</td></tr>' + butonCRM('#5B2D8E') + '</table></td></tr></table>';
+
+  var text = 'PERSONAL — ' + dataLunga(astazi) + '\\n\\nAZI:\\n' + deAzi.map(function (t) { return '- ' + t.title + ' (' + cand(t.deadline, astazi).text + ')'; }).join('\\n') +
+    '\\n\\nURMĂTOARELE 2 ZILE:\\n' + urmeaza.map(function (t) { return '- ' + t.title + ' (' + cand(t.deadline, astazi).text + ')'; }).join('\\n') +
+    '\\n\\nFĂCUTE ÎN 7 ZILE:\\n' + facute.map(function (t) { return '- ' + t.title; }).join('\\n') + '\\n\\n' + CFG.LINK_CRM;
+  trimite(CFG.EMAIL_PERSONAL, (test ? '[TEST] ' : '') + '☀️ Personal · ' + dataLunga(astazi) + ' · ' + deAzi.length + ' azi', html, text);
+}
+
+function emailMunca(crm, ws, astazi, test) {
+  var toti = ((crm.clients || {})[ws.id] || []).filter(function (c) { return !c.archived; });
+  if (!toti.length) { Logger.log(ws.name + ': fără clienți, nu trimite email.'); return; }   // entitatea nu există încă efectiv
+  var limita = plusZile(astazi, 2), acum7 = plusZile(astazi, -7);
+  var activi = toti.filter(function (c) { return c.status !== 'castigat' && c.status !== 'pierdut'; });
+  var deAzi = activi.filter(function (c) { return c.followup && c.followup <= astazi; }).sort(function (a, b) { return a.followup < b.followup ? -1 : 1; });
+  var urmeaza = activi.filter(function (c) { return c.followup && c.followup > astazi && c.followup <= limita; }).sort(function (a, b) { return a.followup < b.followup ? -1 : 1; });
+  var activitate = [];
+  toti.forEach(function (c) {
+    var recente = (c.notes || []).filter(function (n) { return n.date && ziuaDin(n.date) >= acum7; });
+    if (recente.length) activitate.push({ c: c, nota: recente[recente.length - 1], cate: recente.length });
+  });
+  activitate.sort(function (a, b) { return a.nota.date < b.nota.date ? 1 : -1; });
+  if (!test && !deAzi.length && !urmeaza.length && !activitate.length) { Logger.log(ws.name + ': nimic de trimis azi.'); return; }
+
+  var accentWs = '#F47920';
+  var tigla = function (n, eticheta, culoare) {
+    return '<td width="33%" style="padding:0 4px"><table width="100%" cellpadding="0" cellspacing="0" style="background:#1A1425;border:1px solid #2E2445;border-radius:12px">' +
+      '<tr><td align="center" style="padding:14px 6px;font-family:Arial,sans-serif"><div style="font-size:28px;font-weight:800;color:' + culoare + '">' + n + '</div>' +
+      '<div style="font-size:11px;color:#8B7FA8;text-transform:uppercase;letter-spacing:1px;margin-top:2px">' + eticheta + '</div></td></tr></table></td>';
+  };
+  var randClient = function (c, accent) {
+    var k = cand(c.followup, astazi);
+    var sub = [c.contact, STATUS[c.status] || c.status, (c.medii || []).join(', ')].filter(function (x) { return x; }).join(' · ');
+    var ultima = c.notes && c.notes.length ? c.notes[c.notes.length - 1].text : '';
+    return '<tr><td style="padding:11px 14px;border-top:1px solid #2E2445;font-family:Arial,sans-serif">' +
+      '<div style="font-size:15px;font-weight:700;color:#EDE8F5">' + esc(c.companie) + '</div>' +
+      '<div style="font-size:12px;color:#8B7FA8;margin-top:3px">' + esc(sub) + '</div>' +
+      (ultima ? '<div style="font-size:12px;color:#A79BC0;margin-top:4px;font-style:italic">' + esc(scurt(ultima, 120)) + '</div>' : '') + '</td>' +
+      '<td align="right" valign="top" style="padding:11px 14px;border-top:1px solid #2E2445;font-family:Arial,sans-serif;white-space:nowrap">' +
+      '<div style="font-size:12px;font-weight:700;color:' + (k.restant ? '#FF6B5E' : accent) + '">' + esc(k.text) + '</div>' +
+      (c.valoare ? '<div style="font-size:12px;color:#8B7FA8;margin-top:4px">' + esc(c.valoare) + ' €</div>' : '') + '</td></tr>';
+  };
+  var randActivitate = function (a) {
+    return '<tr><td style="padding:10px 14px;border-top:1px solid #2E2445;font-family:Arial,sans-serif">' +
+      '<div style="font-size:14px;font-weight:700;color:#EDE8F5">' + esc(a.c.companie) + '</div>' +
+      '<div style="font-size:12px;color:#A79BC0;margin-top:3px;font-style:italic">' + esc(scurt(a.nota.text, 120)) + '</div></td>' +
+      '<td align="right" valign="top" style="padding:10px 14px;border-top:1px solid #2E2445;font-family:Arial,sans-serif;font-size:12px;color:#8B7FA8;white-space:nowrap">' +
+      numeZi(ziuaDin(a.nota.date)) + (a.cate > 1 ? ' · ' + a.cate + ' note' : '') + '</td></tr>';
+  };
+  var bloc = function (titlu, culoare, randuri, gol) {
+    return '<tr><td style="padding-bottom:16px"><table width="100%" cellpadding="0" cellspacing="0" style="background:#1A1425;border:1px solid #2E2445;border-radius:12px">' +
+      '<tr><td colspan="2" style="padding:12px 14px;font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:' + culoare + ';text-transform:uppercase;letter-spacing:1.5px">' + titlu + '</td></tr>' +
+      (randuri || '<tr><td colspan="2" style="padding:10px 14px;border-top:1px solid #2E2445;font-family:Arial,sans-serif;font-size:13px;color:#5A5070">' + gol + '</td></tr>') +
+      '</table></td></tr>';
+  };
+  var html = '<table width="100%" cellpadding="0" cellspacing="0" style="background:#0F0B15"><tr><td align="center" style="padding:24px 12px">' +
+    '<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">' +
+    '<tr><td style="padding:6px 4px 18px;font-family:Arial,sans-serif">' +
+    '<div style="font-size:12px;color:' + accentWs + ';font-weight:700;letter-spacing:2px">● CYUNGYS CRM · ' + esc(String(ws.name).toUpperCase()) + '</div>' +
+    '<div style="font-size:26px;font-weight:800;color:#EDE8F5;margin-top:6px">' + dataLunga(astazi) + '</div></td></tr>' +
+    '<tr><td style="padding-bottom:16px"><table width="100%" cellpadding="0" cellspacing="0"><tr>' +
+    tigla(deAzi.length, 'Follow-up azi', '#F47920') + tigla(urmeaza.length, 'În 2 zile', '#3498DB') + tigla(activitate.length, 'Lucrați 7 zile', '#2ECC71') +
+    '</tr></table></td></tr>' +
+    bloc('🔥 Azi', '#F47920', deAzi.map(function (c) { return randClient(c, '#F47920'); }).join(''), 'Niciun follow-up pentru azi.') +
+    bloc('📅 Următoarele 2 zile', '#3498DB', urmeaza.map(function (c) { return randClient(c, '#3498DB'); }).join(''), 'Niciun follow-up programat.') +
+    bloc('🏆 Ultimele 7 zile', '#2ECC71', activitate.map(randActivitate).join(''), 'Nicio notă adăugată în ultimele 7 zile.') +
+    butonCRM('#5B2D8E') + '</table></td></tr></table>';
+
+  var text = String(ws.name).toUpperCase() + ' — ' + dataLunga(astazi) + '\\n\\nFOLLOW-UP AZI:\\n' +
+    deAzi.map(function (c) { return '- ' + c.companie + ' (' + cand(c.followup, astazi).text + ')'; }).join('\\n') +
+    '\\n\\nURMĂTOARELE 2 ZILE:\\n' + urmeaza.map(function (c) { return '- ' + c.companie + ' (' + cand(c.followup, astazi).text + ')'; }).join('\\n') +
+    '\\n\\nLUCRAȚI ÎN 7 ZILE:\\n' + activitate.map(function (a) { return '- ' + a.c.companie; }).join('\\n') + '\\n\\n' + CFG.LINK_CRM;
+  trimite(CFG.EMAIL_MUNCA[ws.id] || CFG.EMAIL_MUNCA_IMPLICIT,
+    (test ? '[TEST] ' : '') + '💼 ' + ws.name + ' · ' + dataLunga(astazi) + ' · ' + deAzi.length + ' follow-up azi', html, text);
+}
+
+function butonCRM(culoare) {
+  return '<tr><td align="center" style="padding:8px 0 4px"><a href="' + CFG.LINK_CRM + '" style="display:inline-block;background:' + culoare +
+    ';color:#FFFFFF;font-family:Arial,sans-serif;font-size:14px;font-weight:700;text-decoration:none;padding:12px 26px;border-radius:24px">Deschide CRM-ul</a></td></tr>';
+}
+
+function trimite(catre, subiect, html, text) {
+  MailApp.sendEmail({ to: catre, subject: subiect, htmlBody: html, body: text, name: CFG.NUME_EXPEDITOR });
+  Logger.log('Trimis către ' + catre + ': ' + subiect);
+}
+
+// ───────────────────────── REMINDERE (verificate la 15 minute) ─────────────────────────
+function verificaRemindere() {
+  var crm = citesteCRM();
+  if (!crm || !crm.reminders || !crm.reminders.length) return;
+  var acum = new Date(), astazi = azi(), ora = Utilities.formatDate(acum, CFG.FUS, 'HH:mm');
+  var props = PropertiesService.getScriptProperties();
+  var trimise = {}; try { trimise = JSON.parse(props.getProperty('REMINDERE_TRIMISE') || '{}'); } catch (err) {}
+  var schimbat = false;
+  crm.reminders.forEach(function (r) {
+    if (!r || r.active === false || !r.email || !r.date || !r.time) return;
+    if (!cadeAzi(r, astazi) || ora < r.time || trimise[r.id] === astazi) return;
+    var c = CAT[r.category] || CAT.todo;
+    var html = '<table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F0F8"><tr><td align="center" style="padding:24px 12px">' +
+      '<table width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:#FFFFFF;border-radius:14px;border-left:5px solid ' + c.culoare + '">' +
+      '<tr><td style="padding:20px;font-family:Arial,sans-serif"><div style="font-size:12px;font-weight:700;letter-spacing:2px;color:' + c.culoare + '">⏰ REMINDER · ' + c.nume.toUpperCase() + '</div>' +
+      '<div style="font-size:22px;font-weight:800;color:#1E1630;margin-top:8px">' + esc(r.title) + '</div>' +
+      (r.message ? '<div style="font-size:14px;color:#4A4060;margin-top:10px;line-height:1.5">' + esc(r.message).replace(/\\n/g, '<br>') + '</div>' : '') +
+      '<div style="font-size:12px;color:#8A80A0;margin-top:14px">' + dataLunga(astazi) + ', ora ' + esc(r.time) + '</div></td></tr></table>' +
+      '<table width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%"><tr><td style="height:14px"></td></tr>' + butonCRM('#5B2D8E') + '</table></td></tr></table>';
+    trimite(r.email, '⏰ ' + r.title, html, r.title + (r.message ? '\\n\\n' + r.message : ''));
+    trimise[r.id] = astazi; schimbat = true;
+  });
+  if (schimbat) props.setProperty('REMINDERE_TRIMISE', JSON.stringify(trimise));
+}
+
+function cadeAzi(r, astazi) {
+  if (astazi < r.date) return false;
+  var ziSapt = new Date(astazi + 'T12:00:00Z').getUTCDay();
+  switch (r.repeat) {
+    case 'daily': return true;
+    case 'weekdays': return ziSapt >= 1 && ziSapt <= 5;
+    case 'weekly': return ziSapt === new Date(r.date + 'T12:00:00Z').getUTCDay();
+    case 'monthly': return astazi.slice(8) === r.date.slice(8);
+    default: return astazi === r.date;      // o singură dată
+  }
+}
+
+// ───────────────────────── COPIE DE SIGURANȚĂ SĂPTĂMÂNALĂ ─────────────────────────
+function copieSaptamanala() {
+  var text = citesteText(); if (!text) return;
+  DriveApp.createFile('InventCRM_backup_' + azi() + '.json', text, MimeType.PLAIN_TEXT);
+  var lista = [], it = DriveApp.searchFiles('title contains "InventCRM_backup_" and trashed = false');
+  while (it.hasNext()) lista.push(it.next());
+  lista.sort(function (a, b) { return b.getDateCreated() - a.getDateCreated(); });
+  lista.slice(CFG.BACKUPURI_PASTRATE).forEach(function (f) { f.setTrashed(true); });
+}
+
+// ───────────────────────── INSTALARE ȘI TESTE (le rulezi tu, manual) ─────────────────────────
+// Rulează o singură dată: pornește emailurile de dimineață, reminderele și copia săptămânală.
+function instaleaza() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('trimiteBriefinguri').timeBased().everyDays(1).atHour(CFG.ORA_BRIEFING).nearMinute(0).inTimezone(CFG.FUS).create();
+  ScriptApp.newTrigger('verificaRemindere').timeBased().everyMinutes(15).create();
+  ScriptApp.newTrigger('copieSaptamanala').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(20).inTimezone(CFG.FUS).create();
+  Logger.log('Gata: briefing zilnic în jurul orei ' + CFG.ORA_BRIEFING + ':00, remindere la 15 minute, copie duminica la 20:00.');
+}
+
+// Trimit acum emailurile, marcate [TEST], chiar dacă listele sunt goale.
+function testEmailPersonal() { briefinguri(true, true, false); }
+function testEmailMunca() { briefinguri(true, false, true); }`;
 
 let driveConfig = {};
 
@@ -2079,7 +2242,7 @@ async function syncFromDrive(silent) {
     const res = await fetch(driveConfig.webAppUrl + '?action=read&t=' + Date.now());
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-    if (data.workspaces) {
+    if (data.workspaces && data.workspaces.length) {
       workspaces = data.workspaces;
       saveWorkspaces();
       Object.entries(data.clients || {}).forEach(([wsId, cl]) => {
@@ -3252,7 +3415,7 @@ const FB_CONFIG = {
 };
 const FB_SDK = 'https://www.gstatic.com/firebasejs/10.14.1/';
 const FB_COL = 'cyungyscrm';                 // utilizatori/{uid}/cyungyscrm/{cheie}
-const FB_SYNC_RE = /^crm_(workspaces|clients_.+|tasks_personal|reminders|emailjs_.+)$/;
+const FB_SYNC_RE = /^crm_(workspaces|clients_.+|tasks_personal|reminders|emailjs_.+|drive_url)$/;
 const FB_MAX_DOC = 900000;                   // limita Firestore e 1 MiB pe document
 
 let fbUser = null, fbDb = null, fbUnsub = null, fbReady = false, fbApplying = false;
@@ -3335,6 +3498,12 @@ function fbRefreshUI(keys) {
     if (keys.indexOf('crm_tasks_personal') >= 0) loadTasks();
     if (keys.indexOf('crm_reminders') >= 0) loadReminders();
     if (keys.some(k => k.indexOf('crm_emailjs_') === 0)) loadEmailJSConfig();
+    if (keys.indexOf('crm_drive_url') >= 0) {            // adresa scriptului de Drive, aceeași pe toate dispozitivele
+      driveConfig.webAppUrl = localStorage.getItem('crm_drive_url') || '';
+      _fbLsSet.call(localStorage, 'crm_drive_config', JSON.stringify(driveConfig));
+      const u = document.getElementById('drive-webapp-url'); if (u) u.value = driveConfig.webAppUrl;
+      updateDriveStatus();
+    }
     renderAll();
     if (activeWsId === 'ws_personal') { renderTasks(); updateTasksBadge(); if (typeof renderDepasite === 'function') renderDepasite(); }
   } catch (e) { console.warn('Firebase: reîmprospătare eșuată', e); }
@@ -3346,6 +3515,8 @@ function fbListen() {
     const docs = [];
     snap.docChanges().forEach(ch => { if (ch.type !== 'removed' && !ch.doc.metadata.hasPendingWrites) docs.push(ch.doc); });
     fbApplyRemote(docs);
+    // Dacă în cloud nu există încă adresa scriptului de Drive, o urcă pe cea de pe acest dispozitiv.
+    if (localStorage.getItem('crm_drive_url') == null && driveConfig.webAppUrl) localStorage.setItem('crm_drive_url', driveConfig.webAppUrl);
     fbErr = ''; fbRenderStatus();
   }, e => { console.warn('Firebase: ascultare eșuată', e); fbErr = fbErrText(e); fbRenderStatus(); });
 }
@@ -3517,7 +3688,7 @@ function fbRenderStatus() {
 }
 
 // ═══ VERSIUNE: aplicația își ia singură ultima versiune publicată (ocolește cache-ul browserului) ═══
-const APP_VERSION = '2026.11.16-3';
+const APP_VERSION = '2026.11.16-4';
 function checkAppVersion() {
   if (location.protocol.indexOf('http') !== 0) return;
   fetch(location.pathname + '?vc=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.text() : '').then(t => {
@@ -3531,6 +3702,10 @@ function checkAppVersion() {
 (function () { const v = document.getElementById('app-version'); if (v) v.textContent = APP_VERSION; })();
 setTimeout(checkAppVersion, 1500);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) checkAppVersion(); });
+
+// Adresa scriptului de Drive se salvează și în cloud.
+const _fbSaveDriveConfig = saveDriveConfig;
+saveDriveConfig = function () { _fbSaveDriveConfig(); localStorage.setItem('crm_drive_url', driveConfig.webAppUrl || ''); };
 
 window.addEventListener('online', () => { fbRenderStatus(); fbStart().then(() => { if (fbLinked) fbPushDirty(); else if (fbUser) fbOnUser(fbUser); }); });
 window.addEventListener('offline', fbRenderStatus);
