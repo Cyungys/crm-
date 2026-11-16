@@ -9,6 +9,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Cyungys CRM">
+<script>
+try { if (localStorage.getItem('crm_theme') === 'light') document.documentElement.setAttribute('data-theme','light'); } catch(e) {}
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
@@ -37,6 +40,36 @@
     --radius: 12px;
     --radius-sm: 8px;
     --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    --wsbar: #0A0710;
+    --sasha: #14B8A6;
+    color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    --purple: #5B2D8E;
+    --purple-light: #6A3DA8;
+    --purple-dim: #EFE7F9;
+    --orange: #E06A10;
+    --orange-dim: #FDEBDD;
+    --bg: #F5F3F9;
+    --surface: #FFFFFF;
+    --surface2: #F2EEF8;
+    --surface3: #E8E1F2;
+    --border: #DDD4EA;
+    --text: #1E1630;
+    --text-muted: #5E5375;
+    --text-dim: #958AAA;
+    --green: #17904D;
+    --green-dim: #DDF4E6;
+    --red: #D0392B;
+    --red-dim: #FBE4E1;
+    --yellow: #A8860A;
+    --yellow-dim: #FBF1CC;
+    --blue: #1F78C1;
+    --blue-dim: #DDEBF8;
+    --shadow: 0 4px 24px rgba(40,20,80,0.10);
+    --wsbar: #FFFFFF;
+    --sasha: #0F9488;
+    color-scheme: light;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -44,7 +77,7 @@
 
   /* ── WORKSPACE SWITCHER (rândul de sus) ── */
   .ws-bar {
-    background: #0A0710;
+    background: var(--wsbar);
     border-bottom: 1px solid var(--border);
     padding: 0 16px;
     display: flex;
@@ -386,6 +419,75 @@
   }
   .pin-change-btn:hover { color: var(--purple-light); }
 
+  /* ── DATA ÎN HEADER ── */
+  .header-date { flex: 1; text-align: center; line-height: 1.15; padding: 0 8px; min-width: 0; }
+  .header-date .hd-day { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .6px; }
+  .header-date .hd-date { font-size: 15px; font-weight: 700; color: var(--orange); white-space: nowrap; }
+  .header-date .hd-short { display: none; }
+
+  /* ── TASKURI: categorii pe verticală ── */
+  .tcat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+  .tcat-head { display: flex; align-items: center; gap: 10px; padding: 11px 14px; cursor: pointer; user-select: none; border-left: 4px solid var(--cat); }
+  .tcat-head:hover { background: var(--surface2); }
+  .tcat-name { font-weight: 700; font-size: 14px; color: var(--cat); }
+  .tcat-count { font-size: 11px; color: var(--text-muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1px 8px; }
+  .tcat-over { font-size: 11px; color: var(--red); font-weight: 600; }
+  .tcat-chev { margin-left: auto; color: var(--text-dim); font-size: 13px; transition: transform .15s; }
+  .tcat.collapsed .tcat-chev { transform: rotate(-90deg); }
+  .tcat.collapsed .tgrid { display: none; }
+  .tgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 10px; padding: 4px 12px 12px; }
+  .tgrid-empty { padding: 4px 14px 12px; font-size: 12px; color: var(--text-dim); }
+
+  .tcard { height: 128px; display: flex; flex-direction: column; background: var(--surface2); border: 1px solid var(--border); border-top: 3px solid var(--cat); border-radius: var(--radius-sm); padding: 9px 10px; cursor: pointer; transition: border-color .15s, transform .1s; }
+  .tcard:hover { border-color: var(--cat); }
+  .tcard:active { transform: scale(.98); }
+  .tcard-top { display: flex; align-items: flex-start; gap: 7px; }
+  .tcard-top input { width: 17px; height: 17px; accent-color: var(--purple); flex-shrink: 0; margin-top: 1px; cursor: pointer; }
+  .tcard-title { flex: 1; min-width: 0; font-weight: 700; font-size: 13px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
+  .tcard-del { background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 13px; padding: 0 0 0 2px; flex-shrink: 0; }
+  .tcard-del:hover { color: var(--red); }
+  .tcard-note { font-size: 11.5px; color: var(--text-muted); font-style: italic; line-height: 1.35; margin-top: 5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
+  .tcard-foot { margin-top: auto; display: flex; align-items: center; gap: 6px; font-size: 11px; flex-wrap: wrap; }
+  .tdue { font-weight: 600; white-space: nowrap; }
+  .tdue.over { color: var(--red); } .tdue.today { color: var(--orange); } .tdue.soon { color: var(--yellow); } .tdue.ok { color: var(--green); }
+  .tdate { color: var(--text-muted); white-space: nowrap; }
+
+  /* ── LISTE (finalizate / depășite) ── */
+  .tlist-item { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--cat); border-radius: var(--radius-sm); padding: 10px 13px; margin-bottom: 7px; cursor: pointer; }
+  .tlist-item:hover { background: var(--surface2); }
+  .tlist-main { flex: 1; min-width: 0; }
+  .tlist-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tlist-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tlist-right { font-size: 11px; text-align: right; flex-shrink: 0; color: var(--text-muted); }
+  .sub-head { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin: 18px 0 10px; }
+  .sub-head:first-child { margin-top: 0; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+  .chip { border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); border-radius: 18px; padding: 5px 11px; font-size: 12px; cursor: pointer; font-family: inherit; }
+  .chip.active { background: var(--cat, var(--purple)); border-color: var(--cat, var(--purple)); color: #fff; }
+
+  /* ── TEMĂ ── */
+  .theme-switch { display: inline-flex; border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+  .theme-switch button { background: transparent; border: none; padding: 7px 14px; font-size: 12px; color: var(--text-muted); cursor: pointer; font-family: inherit; }
+  .theme-switch button.active { background: var(--purple); color: #fff; }
+
+  /* ── REMINDERE ── */
+  .rem-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .rem-item:last-child { border-bottom: none; }
+  .rem-main { flex: 1; min-width: 0; }
+  .rem-title { font-weight: 600; font-size: 13px; }
+  .rem-sub { color: var(--text-muted); font-size: 11px; }
+
+  @media (max-width: 600px) {
+    .tgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 4px 10px 10px; }
+    .tcard { height: 124px; }
+    .header-date { padding: 0 4px; flex: 0 1 auto; }
+    .header-date .hd-date { font-size: 13px; }
+    .header-date .hd-day { font-size: 10px; }
+    .header-date .hd-long { display: none; }
+    .header-date .hd-short { display: inline; }
+    .header-actions { gap: 5px; }
+  }
+
   @media (max-width: 600px) {
     .header { padding: 10px 12px; top: 39px; }
     .main { padding: 12px; }
@@ -440,6 +542,7 @@
     <div class="ws-color-dot" id="ws-color-dot"></div>
     <span id="ws-name-display">—</span>
   </div>
+  <div class="header-date" id="header-date"></div>
   <div class="header-actions">
     <button class="btn btn-ghost btn-sm" onclick="openWsSettings()" title="Setări">⚙</button>
     <button class="btn btn-ghost" id="btn-sync-down" onclick="syncFromDrive()" title="Încarcă din Drive" style="color:var(--blue);border-color:var(--blue);padding:8px 14px;font-size:16px;margin-left:4px">⬇</button>
@@ -454,6 +557,7 @@
   <div class="tab" data-tab="remindere" onclick="switchInnerTab('remindere',this)" id="tab-btn-remindere">Follow-up <span id="reminder-count-badge"></span></div>
   <div class="tab" data-tab="propuneri" onclick="switchInnerTab('propuneri',this)" id="tab-btn-propuneri">Propuneri</div>
   <div class="tab" id="tab-btn-taskuri" data-tab="taskuri" onclick="switchInnerTab('taskuri',this)" style="display:none">✅ Taskuri <span id="tasks-count-badge"></span></div>
+  <div class="tab" id="tab-btn-depasite" data-tab="depasite" onclick="switchInnerTab('depasite',this)" style="display:none">⚠ Depășite <span id="depasite-count-badge"></span></div>
   <div class="tab" data-tab="setari" onclick="switchInnerTab('setari',this)" id="tab-btn-setari">Setări</div>
 </div>
 
@@ -490,7 +594,7 @@
 
   <!-- TAB: REMINDERE -->
   <div id="tab-remindere" style="display:none">
-    <div class="section-title">
+    <div class="section-title" id="rem-section-title">
       Follow-up-uri active
       <button class="btn btn-sm btn-ghost" onclick="checkAndSendReminders()">📧 Trimite remindere</button>
     </div>
@@ -511,14 +615,44 @@
   <!-- TAB: TASKURI (doar workspace Personal) -->
   <div id="tab-taskuri" style="display:none">
     <div class="section-title">
-      Taskuri & Remindere personale
-      <button class="btn btn-sm btn-primary" onclick="openAddTask()">+ Task</button>
+      Taskuri personale
+      <span style="display:flex;gap:6px">
+        <button class="btn btn-sm btn-ghost" onclick="openReminders()" title="Reminder pe email">⏰ Reminder</button>
+        <button class="btn btn-sm btn-primary" onclick="openAddTask()">+ Task</button>
+      </span>
     </div>
     <div id="tasks-list"></div>
   </div>
 
+  <!-- TAB: DEPĂȘITE (doar workspace Personal) -->
+  <div id="tab-depasite" style="display:none">
+    <div class="section-title">Taskuri depășite — cronologic</div>
+    <div id="depasite-list"></div>
+  </div>
+
   <!-- TAB: SETARI -->
   <div id="tab-setari" style="display:none">
+    <div class="config-box">
+      <div class="config-title">🎨 Aspect</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Se aplică pe acest dispozitiv, pentru toate workspace-urile.</p>
+      <div class="theme-switch" id="theme-switch">
+        <button data-th="dark" onclick="setTheme('dark')">🌙 Dark</button>
+        <button data-th="light" onclick="setTheme('light')">☀️ Light</button>
+      </div>
+    </div>
+    <div class="config-box" id="journal-box" style="display:none">
+      <div class="config-title">📓 Jurnal taskuri (Word)</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Fiecare task cu data înscrierii și, dacă e cazul, data finalizării.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <select class="form-select" id="journal-period" style="width:auto;padding:6px 10px;font-size:12px">
+          <option value="all">Toate taskurile</option>
+          <option value="30">Ultimele 30 de zile</option>
+          <option value="month">Luna curentă</option>
+          <option value="done">Doar finalizate</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="exportJournal()">📄 Export jurnal Word</button>
+      </div>
+    </div>
     <div class="config-box">
       <div class="config-title">📦 Export / Import</div>
       <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Export/import doar pentru workspace-ul curent.</p>
@@ -790,10 +924,10 @@ function loadAll() {
   if (workspaces.length === 0) {
     // Prima rulare — creăm workspace-urile default
     workspaces = [
-      { id: 'ws_invent', name: 'Personal', color: '#E91E8C', emoji: '👤' },
-      { id: 'ws_personal', name: 'Familie', color: '#F47920', emoji: '👨‍👩‍👧' },
-      { id: 'ws_firma2', name: 'Workspace 3', color: '#3498DB', emoji: '🎯' },
-      { id: 'ws_firma3', name: 'Workspace 4', color: '#2ECC71', emoji: '💼' },
+      { id: 'ws_invent', name: 'Invent Media', color: '#5B2D8E', emoji: '🏢' },
+      { id: 'ws_personal', name: 'Personal', color: '#F47920', emoji: '👤' },
+      { id: 'ws_firma2', name: 'Firma 1', color: '#3498DB', emoji: '🎯' },
+      { id: 'ws_firma3', name: 'Firma 2', color: '#2ECC71', emoji: '💼' },
     ];
     saveWorkspaces();
   }
@@ -823,6 +957,9 @@ function loadWorkspace(wsId) {
   const propuneriTab = document.getElementById('tab-btn-propuneri');
   const clientiTab = document.getElementById('tab-btn-clienti');
   const remindereTab = document.getElementById('tab-btn-remindere');
+  const depasiteTab = document.getElementById('tab-btn-depasite');
+  const journalBox = document.getElementById('journal-box');
+  if (journalBox) journalBox.style.display = isPersonal ? '' : 'none';
 
   if (isPersonal) {
     // Personal: Taskuri | Clienți | Finalizate (ascunde Propuneri)
@@ -833,6 +970,7 @@ function loadWorkspace(wsId) {
     const tabs = document.getElementById('inner-tabs');
     if (tabs && taskTab && clientiTab) {
       tabs.insertBefore(taskTab, clientiTab);
+      if (depasiteTab) { depasiteTab.style.display = ''; tabs.insertBefore(depasiteTab, clientiTab); }
     }
     // Mergi pe Taskuri implicit
     switchInnerTab('taskuri', taskTab, true);
@@ -840,6 +978,7 @@ function loadWorkspace(wsId) {
   } else {
     // Alte workspace-uri: Clienți | Follow-up | Propuneri
     if (taskTab) taskTab.style.display = 'none';
+    if (depasiteTab) depasiteTab.style.display = 'none';
     if (propuneriTab) propuneriTab.style.display = '';
     if (remindereTab) remindereTab.innerHTML = 'Follow-up <span id="reminder-count-badge"></span>';
     // Resetează ordinea: Clienți primul
@@ -849,7 +988,7 @@ function loadWorkspace(wsId) {
     }
     // Dacă eram pe Taskuri → mergi pe Clienți
     const activeTab = document.querySelector('[data-tab].active');
-    if (activeTab && activeTab.dataset.tab === 'taskuri') {
+    if (activeTab && (activeTab.dataset.tab === 'taskuri' || activeTab.dataset.tab === 'depasite')) {
       switchInnerTab('clienti', clientiTab, true);
     }
   }
@@ -899,6 +1038,7 @@ function renderWsHeader() {
   document.getElementById('ws-color-dot').style.background = ws.color;
   document.getElementById('ws-name-display').textContent = (ws.emoji ? ws.emoji + ' ' : '') + ws.name;
   document.title = 'Cyungys CRM · ' + ws.name;
+  renderHeaderDate();
   // Butoane Drive vizibile pe toate workspace-urile
   const btnDown = document.getElementById('btn-sync-down');
   const btnUp = document.getElementById('btn-sync-up');
@@ -992,7 +1132,7 @@ function openWsSettings() {
 // INNER TABS
 // ═══════════════════════════════════════════════════
 function switchInnerTab(name, el, silent) {
-  ['clienti','remindere','propuneri','taskuri','setari'].forEach(t => {
+  ['clienti','remindere','propuneri','taskuri','depasite','setari'].forEach(t => {
     document.getElementById('tab-'+t).style.display = t === name ? '' : 'none';
   });
   document.querySelectorAll('[data-tab]').forEach(t => t.classList.remove('active'));
@@ -1001,6 +1141,7 @@ function switchInnerTab(name, el, silent) {
     if (name === 'remindere') renderReminders();
     if (name === 'propuneri') renderPropuneri();
     if (name === 'taskuri') renderTasks();
+    if (name === 'depasite') renderDepasite();
   }
 }
 
@@ -1203,10 +1344,13 @@ function renderReminders() {
   const tomorrow = new Date(Date.now()+86400000).toISOString().slice(0,10);
   const withFollowup = clients.filter(c => c.followup && c.status!=='castigat' && c.status!=='pierdut').sort((a,b)=>a.followup.localeCompare(b.followup));
   const list = document.getElementById('reminder-list');
-
-  // Taskuri finalizate din Personal
-  loadTasks();
-  const doneTasks = tasks.filter(t => t.done).sort((a,b) => (b.doneAt||'').localeCompare(a.doneAt||''));
+  const remTitle = document.getElementById('rem-section-title');
+  if (activeWsId === 'ws_personal') {
+    if (remTitle) remTitle.innerHTML = 'Taskuri finalizate';
+    renderFinalizatePersonal(list); return;
+  }
+  if (remTitle) remTitle.innerHTML = 'Follow-up-uri active <button class="btn btn-sm btn-ghost" onclick="checkAndSendReminders()">📧 Trimite remindere</button>';
+  const doneTasks = [];
 
   let html = '';
 
@@ -1853,6 +1997,7 @@ function buildDrivePayload() {
     emailjs: ejsCfg,
     activeWsId,
     tasks: JSON.parse(localStorage.getItem('crm_tasks_personal') || '[]'),
+    reminders: JSON.parse(localStorage.getItem('crm_reminders') || '[]'),
     savedAt: new Date().toISOString(),
     version: 2
   });
@@ -1919,6 +2064,7 @@ async function syncFromDrive(silent) {
         localStorage.setItem('crm_clients_' + wsId, JSON.stringify(cl));
       });
       if (data.tasks) { localStorage.setItem('crm_tasks_personal', JSON.stringify(data.tasks)); }
+      if (data.reminders) { localStorage.setItem('crm_reminders', JSON.stringify(data.reminders)); }
       if (data.emailjs && data.emailjs.publicKey) {
         // Salvează config-ul pe workspace-ul Invent (primul)
         localStorage.setItem('crm_emailjs_ws_invent', JSON.stringify(data.emailjs));
@@ -1960,156 +2106,289 @@ function saveClientsAndSync() {
 const TASK_CATEGORIES = [
   { id: 'todo', label: '📋 To-do', color: 'var(--purple-light)' },
   { id: 'personal', label: '👤 Personal', color: 'var(--blue)' },
+  { id: 'sasha', label: '🧒 Sasha', color: 'var(--sasha)' },
   { id: 'sport', label: '🏃 Sport', color: '#E91E8C' },
   { id: 'financiar', label: '💰 Financiar', color: 'var(--green)' },
   { id: 'medical', label: '🏥 Medical', color: 'var(--red)' },
 ];
+const RO_DAYS = ['Duminică','Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă'];
+const RO_MONTHS = ['ianuarie','februarie','martie','aprilie','mai','iunie','iulie','august','septembrie','octombrie','noiembrie','decembrie'];
 
 let tasks = [];
+const TASK_REPEAT = { daily: 'zilnic', weekly: 'săptămânal' };
+
+// Duminica săptămânii curente (săptămâna = luni–duminică)
+function endOfThisWeek() {
+  const d = new Date(); const dow = (d.getDay() + 6) % 7; // 0 = luni
+  d.setDate(d.getDate() + (6 - dow));
+  return localISO(d);
+}
+// Un task recurent apare doar când începe săptămâna în care cade următoarea lui dată
+function isTaskVisible(t) {
+  if (t.done) return false;
+  if (!t.repeat || t.repeat === 'none' || !t.deadline) return true;
+  return t.deadline <= endOfThisWeek();
+}
+function addDaysISO(iso, n) { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return localISO(d); }
+
+function catOf(t) { return TASK_CATEGORIES.find(c => c.id === t.category) || TASK_CATEGORIES[0]; }
+function escHtml(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+// Data locală (nu UTC) — evită decalajul de după miezul nopții
+function localISO(d) { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function daysUntil(iso) {
+  const a = new Date(localISO() + 'T00:00:00'), b = new Date(iso + 'T00:00:00');
+  return Math.round((b - a) / 86400000);
+}
+// Text + clasă pentru zilele rămase până la deadline
+function dueInfo(iso) {
+  if (!iso) return null;
+  const n = daysUntil(iso);
+  if (n < 0) return { cls: 'over', txt: 'depășit cu ' + (-n) + (n === -1 ? ' zi' : ' zile') };
+  if (n === 0) return { cls: 'today', txt: 'azi' };
+  if (n === 1) return { cls: 'soon', txt: 'mâine' };
+  if (n <= 3) return { cls: 'soon', txt: 'în ' + n + ' zile' };
+  return { cls: 'ok', txt: 'în ' + n + ' zile' };
+}
+function fmtDateTime(isoTs) {
+  if (!isoTs) return '—';
+  const d = new Date(isoTs);
+  return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
+}
 
 function loadTasks() {
   const raw = localStorage.getItem('crm_tasks_personal');
   tasks = raw ? JSON.parse(raw) : [];
 }
 
+// Salvare în Drive cu întârziere (debounce), comună pentru taskuri, remindere, clienți
+function scheduleDriveSync() {
+  _unsavedChanges = true;
+  if (driveConfig && driveConfig.webAppUrl) {
+    clearTimeout(window._syncTimer);
+    window._syncTimer = setTimeout(() => { syncToDrive(); }, 2000);
+  }
+}
+
 function saveTasks() {
   localStorage.setItem('crm_tasks_personal', JSON.stringify(tasks));
   updateTasksBadge();
-  _unsavedChanges = true;
+  scheduleDriveSync();
+}
+
+function overdueTasks() {
+  const today = localISO();
+  return tasks.filter(t => !t.done && t.deadline && t.deadline < today)
+              .sort((a,b) => a.deadline.localeCompare(b.deadline));
 }
 
 function updateTasksBadge() {
-  const pending = tasks.filter(t => !t.done).length;
+  const pending = tasks.filter(isTaskVisible).length;
   const badge = document.getElementById('tasks-count-badge');
-  if (badge) badge.innerHTML = pending > 0 ? ` <span style="background:var(--orange);color:#fff;border-radius:10px;padding:1px 5px;font-size:10px;font-weight:700">${pending}</span>` : '';
+  if (badge) badge.innerHTML = pending > 0 ? ` <span style="background:var(--orange);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700">${pending}</span>` : '';
+  const over = overdueTasks().length;
+  const b2 = document.getElementById('depasite-count-badge');
+  if (b2) b2.innerHTML = over > 0 ? ` <span style="background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700">${over}</span>` : '';
+}
+
+// ── Categorii pliabile (memorat pe device) ──
+function getCollapsed() { try { return JSON.parse(localStorage.getItem('crm_task_collapsed') || '[]'); } catch(e) { return []; } }
+function toggleTaskCat(id) {
+  const c = getCollapsed();
+  const i = c.indexOf(id);
+  if (i >= 0) c.splice(i, 1); else c.push(id);
+  localStorage.setItem('crm_task_collapsed', JSON.stringify(c));
+  const el = document.querySelector('.tcat[data-cat="' + id + '"]');
+  if (el) el.classList.toggle('collapsed', i < 0);
+}
+
+function renderTaskCard(t) {
+  const cat = catOf(t);
+  const due = dueInfo(t.deadline);
+  return `
+  <div class="tcard" style="--cat:${cat.color}" onclick="openTaskPopup('${t.id}')">
+    <div class="tcard-top">
+      <input type="checkbox" ${t.done ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleTask('${t.id}',this.checked)" title="Marchează finalizat">
+      <div class="tcard-title">${escHtml(t.title)}</div>
+      <button class="tcard-del" onclick="event.stopPropagation();deleteTask('${t.id}')" title="Șterge">🗑</button>
+    </div>
+    ${t.note ? `<div class="tcard-note">${escHtml(t.note)}</div>` : ''}
+    <div class="tcard-foot">
+      ${t.deadline ? `<span class="tdate">📅 ${formatDate(t.deadline)}</span><span class="tdue ${due.cls}">${due.txt}</span>` : ''}
+      ${t.repeat && t.repeat !== 'none' ? `<span class="tdate" title="Se repetă">🔁 ${TASK_REPEAT[t.repeat]}</span>` : ''}
+    </div>
+  </div>`;
 }
 
 function renderTasks() {
   loadTasks();
   const list = document.getElementById('tasks-list');
   if (!list) return;
+  const pending = tasks.filter(isTaskVisible);
+  const collapsed = getCollapsed();
+  const today = localISO();
 
-  const today = new Date().toISOString().slice(0,10);
-  const pending = tasks.filter(t => !t.done);
-
-  if (tasks.length === 0) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">Niciun task</div><div class="empty-sub">Apasă "+ Task" pentru a adăuga</div></div>`;
-    return;
-  }
-
-  const renderTaskCard = (t) => {
-    const cat = TASK_CATEGORIES.find(c => c.id === t.category) || TASK_CATEGORIES[0];
-    let deadlineHtml = '';
-    if (t.deadline) {
-      let cls = 'ok', label = formatDate(t.deadline);
-      if (t.deadline < today) { cls = 'overdue'; label = '⚠ ' + label; }
-      else if (t.deadline === today) { cls = 'soon'; label = '🔔 Azi'; }
-      deadlineHtml = `<div class="followup-date ${cls}" style="font-size:10px;margin-top:5px">📅 ${label}</div>`;
-    }
+  list.innerHTML = TASK_CATEGORIES.map(cat => {
+    const catTasks = pending.filter(t => t.category === cat.id).sort((a,b) => {
+      if (a.deadline && b.deadline) return a.deadline.localeCompare(b.deadline);
+      if (a.deadline) return -1; if (b.deadline) return 1;
+      return (a.createdAt||'').localeCompare(b.createdAt||'');
+    });
+    const over = catTasks.filter(t => t.deadline && t.deadline < today).length;
     return `
-    <div style="background:var(--surface);border:1px solid var(--border);border-top:3px solid ${cat.color};border-radius:var(--radius-sm);padding:10px;margin-bottom:8px;transition:all 0.15s">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:4px">
-        <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${t.id}',this.checked)"
-          style="width:16px;height:16px;cursor:pointer;accent-color:var(--purple);flex-shrink:0;margin-top:2px">
-        <button onclick="deleteTask('${t.id}')" style="background:transparent;border:none;color:var(--text-dim);cursor:pointer;font-size:13px;padding:0;flex-shrink:0" title="Șterge">🗑</button>
+    <section class="tcat ${collapsed.includes(cat.id) ? 'collapsed' : ''}" data-cat="${cat.id}" style="--cat:${cat.color}">
+      <div class="tcat-head" onclick="toggleTaskCat('${cat.id}')">
+        <span class="tcat-name">${cat.label}</span>
+        <span class="tcat-count">${catTasks.length} ${catTasks.length === 1 ? 'activ' : 'active'}</span>
+        ${over > 0 ? `<span class="tcat-over">⚠ ${over} depășit${over === 1 ? '' : 'e'}</span>` : ''}
+        <span class="tcat-chev">▾</span>
       </div>
-      <div style="font-weight:600;font-size:12px;margin-top:6px;line-height:1.3;${t.done?'text-decoration:line-through;color:var(--text-dim)':''}">${t.title}</div>
-      ${t.note ? `<div style="font-size:11px;color:var(--text-muted);margin-top:4px;font-style:italic;line-height:1.3">${t.note}</div>` : ''}
-      ${deadlineHtml}
-    </div>`;
-  };
-
-  // 5 coloane pe categorii
-  const cols = TASK_CATEGORIES.map(cat => {
-    const catTasks = pending.filter(t => t.category === cat.id);
-    return `
-    <div style="min-width:0">
-      <div style="font-size:10px;font-weight:700;color:${cat.color};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid ${cat.color}40;text-align:center">
-        ${cat.label}<br><span style="font-size:9px;color:var(--text-dim);font-weight:400">${catTasks.length} task${catTasks.length!==1?'uri':''}</span>
-      </div>
-      ${catTasks.length === 0 
-        ? `<div style="text-align:center;padding:16px 4px;color:var(--text-dim);font-size:11px;border:1px dashed var(--border);border-radius:var(--radius-sm)">—</div>`
-        : catTasks.map(renderTaskCard).join('')
-      }
-    </div>`;
+      ${catTasks.length ? `<div class="tgrid">${catTasks.map(renderTaskCard).join('')}</div>` : `<div class="tgrid tgrid-empty">Nimic de făcut aici.</div>`}
+    </section>`;
   }).join('');
-
-  list.innerHTML = `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-items:start">${cols}</div>`;
   updateTasksBadge();
 }
 
-function openAddTask() {
-  // Modal inline rapid
-  const existing = document.getElementById('task-quick-modal');
-  if (existing) { existing.remove(); return; }
+// ── Pop-up detaliu task ──
+function openTaskPopup(id) {
+  loadTasks();
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  const cat = catOf(t);
+  const due = dueInfo(t.deadline);
+  closeTaskModal('task-popup');
+  const modal = document.createElement('div');
+  modal.id = 'task-popup';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-top:4px solid ${cat.color};border-radius:var(--radius);width:100%;max-width:440px;max-height:85vh;display:flex;flex-direction:column;box-shadow:var(--shadow)">
+      <div style="padding:16px 18px 10px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:${cat.color};text-transform:uppercase;letter-spacing:.5px">${cat.label}</div>
+          <div style="font-size:17px;font-weight:700;margin-top:4px;line-height:1.3;word-break:break-word;${t.done ? 'text-decoration:line-through;color:var(--text-muted)' : ''}">${escHtml(t.title)}</div>
+        </div>
+        <button onclick="closeTaskModal('task-popup')" style="background:transparent;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1">×</button>
+      </div>
+      <div style="padding:0 18px 14px;overflow-y:auto">
+        <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-muted);margin-bottom:12px">
+          ${t.deadline ? `<span>📅 ${formatDate(t.deadline)} · <strong class="tdue ${due.cls}">${due.txt}</strong></span>` : ''}
+          ${t.repeat && t.repeat !== 'none' ? `<span>🔁 se repetă ${TASK_REPEAT[t.repeat]}</span>` : ''}
+          <span>✍ înscris ${fmtDateTime(t.createdAt)}</span>
+          ${t.done ? `<span style="color:var(--green)">✔ finalizat ${fmtDateTime(t.doneAt)}</span>` : ''}
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;font-size:14px;line-height:1.55;white-space:pre-wrap;word-break:break-word;${t.note ? '' : 'color:var(--text-dim);font-style:italic'}">${t.note ? escHtml(t.note) : 'Fără notă.'}</div>
+      </div>
+      <div style="padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+        <button class="btn btn-danger btn-sm" onclick="closeTaskModal('task-popup');deleteTask('${t.id}')">🗑</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeTaskModal('task-popup');openAddTask('${t.id}')">✏ Editează</button>
+        ${t.done
+          ? `<button class="btn btn-ghost btn-sm" onclick="closeTaskModal('task-popup');toggleTask('${t.id}',false)">↩ Redeschide</button>`
+          : `<button class="btn btn-primary btn-sm" onclick="closeTaskModal('task-popup');toggleTask('${t.id}',true)">✔ Finalizează</button>`}
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+function closeTaskModal(id) { const m = document.getElementById(id); if (m) m.remove(); }
 
+// ── Adăugare / editare task ──
+function openAddTask(editId) {
+  loadTasks();
+  const t = editId ? tasks.find(x => x.id === editId) : null;
+  closeTaskModal('task-quick-modal');
   const modal = document.createElement('div');
   modal.id = 'task-quick-modal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px';
   modal.innerHTML = `
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:320px;box-shadow:var(--shadow)">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:380px;box-shadow:var(--shadow)">
       <div style="padding:16px 18px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-        <div style="font-size:16px;font-weight:600">Task nou</div>
-        <button onclick="document.getElementById('task-quick-modal').remove()" style="background:transparent;border:none;color:var(--text-muted);font-size:22px;cursor:pointer">×</button>
+        <div style="font-size:16px;font-weight:600">${t ? 'Editează task' : 'Task nou'}</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-primary btn-sm" onclick="saveTask('${t ? t.id : ''}')">Salvează</button>
+          <button onclick="closeTaskModal('task-quick-modal')" style="background:transparent;border:none;color:var(--text-muted);font-size:22px;cursor:pointer">×</button>
+        </div>
       </div>
       <div style="padding:18px">
         <div style="margin-bottom:12px">
           <label class="form-label">Titlu *</label>
-          <input type="text" class="form-input" id="task-title" placeholder="ex: Programare doctor, Plătit factură..." autofocus>
+          <input type="text" class="form-input" id="task-title" placeholder="ex: Programare doctor, Plătit factură..." value="${t ? escHtml(t.title) : ''}">
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
           <div>
             <label class="form-label">Categorie</label>
             <select class="form-select" id="task-category">
-              ${TASK_CATEGORIES.map(c => `<option value="${c.id}">${c.label}</option>`).join('')}
+              ${TASK_CATEGORIES.map(c => `<option value="${c.id}" ${t && t.category === c.id ? 'selected' : ''}>${c.label}</option>`).join('')}
             </select>
           </div>
           <div>
             <label class="form-label">Deadline</label>
-            <input type="date" class="form-input" id="task-deadline">
+            <input type="date" class="form-input" id="task-deadline" value="${t && t.deadline ? t.deadline : ''}">
           </div>
         </div>
-        <div style="margin-bottom:4px">
-          <label class="form-label">Notă (opțional)</label>
-          <input type="text" class="form-input" id="task-note" placeholder="Detalii...">
+        <div style="margin-bottom:12px">
+          <label class="form-label">Repetare</label>
+          <select class="form-select" id="task-repeat">
+            <option value="none">Nu se repetă</option>
+            <option value="daily" ${t && t.repeat === 'daily' ? 'selected' : ''}>Zilnic</option>
+            <option value="weekly" ${t && t.repeat === 'weekly' ? 'selected' : ''}>Săptămânal (aceeași zi)</option>
+          </select>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:5px">Taskurile repetitive apar doar din săptămâna în care cad.</div>
         </div>
-      </div>
-      <div style="padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
-        <button class="btn btn-ghost" onclick="document.getElementById('task-quick-modal').remove()">Anulează</button>
-        <button class="btn btn-primary" onclick="saveTask()">Salvează</button>
+        <div>
+          <label class="form-label">Notă (opțional)</label>
+          <textarea class="form-input" id="task-note" rows="4" style="resize:vertical" placeholder="Detalii...">${t && t.note ? escHtml(t.note) : ''}</textarea>
+        </div>
       </div>
     </div>`;
   document.body.appendChild(modal);
-  modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
-  // Enter pentru salvare rapidă
-  document.getElementById('task-title').addEventListener('keydown', e => { if(e.key==='Enter') saveTask(); });
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  const ti = document.getElementById('task-title');
+  ti.focus();
+  ti.addEventListener('keydown', e => { if (e.key === 'Enter') saveTask(t ? t.id : ''); });
 }
 
-function saveTask() {
+function saveTask(editId) {
   const title = document.getElementById('task-title').value.trim();
   if (!title) { showToast('Scrie un titlu!', 'error'); return; }
   loadTasks();
-  tasks.push({
-    id: uid(),
+  const data = {
     title,
     category: document.getElementById('task-category').value,
     deadline: document.getElementById('task-deadline').value,
     note: document.getElementById('task-note').value.trim(),
-    done: false,
-    createdAt: new Date().toISOString()
-  });
+    repeat: document.getElementById('task-repeat').value,
+  };
+  if (data.repeat !== 'none' && !data.deadline) data.deadline = localISO();
+  if (editId) {
+    const i = tasks.findIndex(x => x.id === editId);
+    if (i >= 0) Object.assign(tasks[i], data, { updatedAt: new Date().toISOString() });
+  } else {
+    tasks.push(Object.assign({ id: uid(), done: false, createdAt: new Date().toISOString() }, data));
+  }
   saveTasks();
-  document.getElementById('task-quick-modal').remove();
-  renderTasks();
-  showToast('✅ Task adăugat', 'success');
+  closeTaskModal('task-quick-modal');
+  refreshTaskViews();
+  showToast(editId ? '✏ Task actualizat' : '✅ Task adăugat', 'success');
 }
 
 function toggleTask(id, done) {
   loadTasks();
   const idx = tasks.findIndex(t => t.id === id);
+  const t = tasks[idx];
+  if (idx >= 0 && done && t.repeat && t.repeat !== 'none') {
+    // Apariția de azi intră în Finalizate, taskul trece la următoarea dată
+    tasks.push(Object.assign({}, t, { id: uid(), repeat: 'none', seriesId: t.id, done: true, doneAt: new Date().toISOString() }));
+    const step = t.repeat === 'daily' ? 1 : 7;
+    let next = addDaysISO(t.deadline || localISO(), step);
+    while (next <= localISO()) next = addDaysISO(next, step); // sare peste zilele ratate
+    tasks[idx].deadline = next;
+    saveTasks();
+    refreshTaskViews();
+    showToast('✅ Bifat · următoarea: ' + formatDate(next), 'success');
+    return;
+  }
   if (idx >= 0) { tasks[idx].done = done; tasks[idx].doneAt = done ? new Date().toISOString() : null; }
   saveTasks();
-  renderTasks();
+  refreshTaskViews();
   if (done) showToast('✅ Task finalizat!', 'success');
 }
 
@@ -2118,7 +2397,328 @@ function deleteTask(id) {
   loadTasks();
   tasks = tasks.filter(t => t.id !== id);
   saveTasks();
+  refreshTaskViews();
+}
+
+// Re-randează ce e vizibil acum (taskuri / depășite / finalizate)
+function refreshTaskViews() {
   renderTasks();
+  const active = document.querySelector('[data-tab].active');
+  const tab = active ? active.dataset.tab : '';
+  if (tab === 'depasite') renderDepasite();
+  if (tab === 'remindere') renderReminders();
+}
+
+// ── Tab DEPĂȘITE ──
+function renderDepasite() {
+  loadTasks();
+  const list = document.getElementById('depasite-list');
+  if (!list) return;
+  const over = overdueTasks();
+  if (!over.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🎉</div><div class="empty-title">Nimic depășit</div><div class="empty-sub">Toate taskurile cu termen sunt la zi.</div></div>`;
+    updateTasksBadge();
+    return;
+  }
+  list.innerHTML = over.map(t => {
+    const cat = catOf(t), due = dueInfo(t.deadline);
+    return `<div class="tlist-item" style="--cat:${cat.color}" onclick="openTaskPopup('${t.id}')">
+      <input type="checkbox" onclick="event.stopPropagation()" onchange="toggleTask('${t.id}',this.checked)" style="width:17px;height:17px;accent-color:var(--purple);flex-shrink:0">
+      <div class="tlist-main">
+        <div class="tlist-title">${escHtml(t.title)}</div>
+        <div class="tlist-sub"><span style="color:${cat.color}">${cat.label}</span>${t.note ? ' · ' + escHtml(t.note) : ''}</div>
+      </div>
+      <div class="tlist-right">📅 ${formatDate(t.deadline)}<br><span class="tdue over">${due.txt}</span></div>
+    </div>`;
+  }).join('');
+  updateTasksBadge();
+}
+
+// ── Tab FINALIZATE (Personal): ultimele 10 + arhivă pe categorii ──
+let _finalizateCat = null;
+function setFinalizateCat(id) { _finalizateCat = (_finalizateCat === id ? null : id); renderReminders(); }
+
+function renderFinalizatePersonal(list) {
+  loadTasks();
+  const today = localISO();
+  let html = '';
+
+  // Follow-up-uri ale clienților din Personal (dacă există)
+  const withFollowup = clients.filter(c => !c.archived && c.followup && c.status !== 'castigat' && c.status !== 'pierdut').sort((a,b) => a.followup.localeCompare(b.followup));
+  if (withFollowup.length) {
+    html += `<div class="sub-head">📅 Follow-up clienți (${withFollowup.length})</div>`;
+    html += withFollowup.map(c => {
+      const due = dueInfo(c.followup);
+      return `<div class="tlist-item" style="--cat:var(--blue)" onclick="openDetail('${c.id}')">
+        <div class="tlist-main"><div class="tlist-title">${escHtml(c.companie)}</div><div class="tlist-sub">${escHtml(c.brand || c.contact || '')}</div></div>
+        <div class="tlist-right">📅 ${formatDate(c.followup)}<br><span class="tdue ${due.cls}">${due.txt}</span></div>
+      </div>`;
+    }).join('');
+  }
+
+  const done = tasks.filter(t => t.done).sort((a,b) => (b.doneAt||'').localeCompare(a.doneAt||''));
+  if (!done.length && !withFollowup.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">Nimic finalizat încă</div><div class="empty-sub">Taskurile bifate apar aici.</div></div>`;
+    return;
+  }
+
+  const doneItem = t => {
+    const cat = catOf(t);
+    return `<div class="tlist-item" style="--cat:${cat.color};opacity:.85" onclick="openTaskPopup('${t.id}')">
+      <span style="font-size:15px">✅</span>
+      <div class="tlist-main">
+        <div class="tlist-title" style="text-decoration:line-through;color:var(--text-muted)">${escHtml(t.title)}</div>
+        <div class="tlist-sub"><span style="color:${cat.color}">${cat.label}</span>${t.note ? ' · ' + escHtml(t.note) : ''}</div>
+      </div>
+      <div class="tlist-right">Finalizat<br>${fmtDateTime(t.doneAt)}</div>
+    </div>`;
+  };
+
+  const recent = done.slice(0, 10);
+  const older = done.slice(10);
+  if (recent.length) {
+    html += `<div class="sub-head">✅ Ultimele ${recent.length} finalizate</div>`;
+    html += recent.map(doneItem).join('');
+  }
+  if (older.length) {
+    html += `<div class="sub-head">🗂 Arhivă pe categorii (${older.length})</div><div class="chip-row">`;
+    html += TASK_CATEGORIES.map(cat => {
+      const n = older.filter(t => t.category === cat.id).length;
+      if (!n) return '';
+      return `<button class="chip ${_finalizateCat === cat.id ? 'active' : ''}" style="--cat:${cat.color}" onclick="setFinalizateCat('${cat.id}')">${cat.label} · ${n}</button>`;
+    }).join('');
+    html += `</div>`;
+    if (_finalizateCat) {
+      html += older.filter(t => t.category === _finalizateCat).map(doneItem).join('');
+    } else {
+      html += `<div style="font-size:12px;color:var(--text-dim)">Alege o categorie ca să vezi taskurile mai vechi.</div>`;
+    }
+  }
+  list.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════
+// DATA ÎN HEADER
+// ═══════════════════════════════════════════════════
+function renderHeaderDate() {
+  const el = document.getElementById('header-date');
+  if (!el) return;
+  const d = new Date();
+  el.innerHTML = `<div class="hd-day">${RO_DAYS[d.getDay()]}</div><div class="hd-date">${d.getDate()} <span class="hd-long">${RO_MONTHS[d.getMonth()]}</span><span class="hd-short">${RO_MONTHS[d.getMonth()].slice(0,3)}.</span></div>`;
+}
+setInterval(renderHeaderDate, 60000);
+
+// ═══════════════════════════════════════════════════
+// TEMĂ DARK / LIGHT
+// ═══════════════════════════════════════════════════
+function setTheme(th) {
+  if (th === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  else document.documentElement.removeAttribute('data-theme');
+  try { localStorage.setItem('crm_theme', th); } catch(e) {}
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', th === 'light' ? '#FFFFFF' : '#5B2D8E');
+  document.querySelectorAll('#theme-switch button').forEach(b => b.classList.toggle('active', b.dataset.th === th));
+}
+function initTheme() {
+  let th = 'dark';
+  try { th = localStorage.getItem('crm_theme') || 'dark'; } catch(e) {}
+  setTheme(th);
+}
+
+// ═══════════════════════════════════════════════════
+// EXPORT JURNAL WORD
+// ═══════════════════════════════════════════════════
+function exportJournal() {
+  loadTasks();
+  const period = document.getElementById('journal-period').value;
+  const now = new Date();
+  let list = tasks.slice();
+  let periodTxt = 'Toate taskurile';
+  if (period === '30') {
+    const lim = new Date(now.getTime() - 30*86400000).toISOString();
+    list = list.filter(t => (t.createdAt||'') >= lim || (t.doneAt||'') >= lim);
+    periodTxt = 'Ultimele 30 de zile';
+  } else if (period === 'month') {
+    const ym = localISO().slice(0,7);
+    list = list.filter(t => (t.createdAt||'').slice(0,7) === ym || (t.doneAt||'').slice(0,7) === ym);
+    periodTxt = RO_MONTHS[now.getMonth()] + ' ' + now.getFullYear();
+  } else if (period === 'done') {
+    list = list.filter(t => t.done);
+    periodTxt = 'Doar taskuri finalizate';
+  }
+  if (!list.length) { showToast('Niciun task în perioada aleasă', 'info'); return; }
+  list.sort((a,b) => (a.createdAt||'').localeCompare(b.createdAt||''));
+
+  const rows = list.map((t, i) => {
+    const cat = catOf(t);
+    const status = t.done
+      ? `<span style="color:#17904D;font-weight:bold">✔ Finalizat la ${fmtDateTime(t.doneAt)}</span>`
+      : (t.deadline && t.deadline < localISO() ? `<span style="color:#D0392B;font-weight:bold">⚠ Depășit</span>` : `<span style="color:#E06A10">În lucru</span>`);
+    return `<tr>
+      <td style="border:1px solid #DDD4EA;padding:6px;vertical-align:top">${i+1}</td>
+      <td style="border:1px solid #DDD4EA;padding:6px;vertical-align:top;white-space:nowrap">${fmtDateTime(t.createdAt)}</td>
+      <td style="border:1px solid #DDD4EA;padding:6px;vertical-align:top"><b>${escHtml(t.title)}</b>${t.note ? `<br><i style="color:#5E5375">${escHtml(t.note).replace(/\n/g,'<br>')}</i>` : ''}</td>
+      <td style="border:1px solid #DDD4EA;padding:6px;vertical-align:top">${cat.label.replace(/^\S+\s/, '')}</td>
+      <td style="border:1px solid #DDD4EA;padding:6px;vertical-align:top;white-space:nowrap">${t.deadline ? formatDate(t.deadline) : '—'}</td>
+      <td style="border:1px solid #DDD4EA;padding:6px;vertical-align:top">${status}</td>
+    </tr>`;
+  }).join('');
+  const doneN = list.filter(t => t.done).length;
+
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>Jurnal taskuri</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+<style>@page Section1 { size: 841.9pt 595.3pt; mso-page-orientation: landscape; margin: 1.5cm; } div.Section1 { page: Section1; } body { font-family: Calibri, Arial, sans-serif; font-size: 10.5pt; color: #1E1630; } table { border-collapse: collapse; width: 100%; }</style></head>
+<body><div class="Section1">
+<h1 style="color:#5B2D8E;font-size:20pt;margin-bottom:2pt">Jurnal taskuri — Personal</h1>
+<p style="color:#5E5375;margin-top:0">${periodTxt} · generat ${fmtDateTime(now.toISOString())} · ${list.length} taskuri, ${doneN} finalizate</p>
+<table>
+<tr style="background:#5B2D8E;color:#ffffff">
+  <th style="border:1px solid #5B2D8E;padding:6px;text-align:left">#</th>
+  <th style="border:1px solid #5B2D8E;padding:6px;text-align:left">Înscris</th>
+  <th style="border:1px solid #5B2D8E;padding:6px;text-align:left">Task / notă</th>
+  <th style="border:1px solid #5B2D8E;padding:6px;text-align:left">Categorie</th>
+  <th style="border:1px solid #5B2D8E;padding:6px;text-align:left">Termen</th>
+  <th style="border:1px solid #5B2D8E;padding:6px;text-align:left">Stare</th>
+</tr>
+${rows}
+</table></div></body></html>`;
+  const blob = new Blob(['﻿', html], { type: 'application/msword' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Jurnal_taskuri_' + localISO() + '.doc';
+  document.body.appendChild(a); a.click(); a.remove();
+  showToast('📄 Jurnal exportat', 'success');
+}
+
+// ═══════════════════════════════════════════════════
+// REMINDERE PE EMAIL (trimiterea o face scriptul Google)
+// ═══════════════════════════════════════════════════
+const REPEAT_LABELS = { once: 'o singură dată', daily: 'zilnic', weekdays: 'zile lucrătoare (L–V)', weekly: 'săptămânal', monthly: 'lunar' };
+let reminders = [];
+function loadReminders() { try { reminders = JSON.parse(localStorage.getItem('crm_reminders') || '[]'); } catch(e) { reminders = []; } }
+function saveReminders() { localStorage.setItem('crm_reminders', JSON.stringify(reminders)); scheduleDriveSync(); }
+function defaultReminderEmail() {
+  try { const c = JSON.parse(localStorage.getItem('crm_emailjs_ws_invent') || '{}'); if (c.toEmail) return c.toEmail; } catch(e) {}
+  return localStorage.getItem('crm_reminder_email') || '';
+}
+
+function openReminders() {
+  loadReminders();
+  closeTaskModal('reminder-modal');
+  const tomorrow = localISO(new Date(Date.now() + 86400000));
+  const modal = document.createElement('div');
+  modal.id = 'reminder-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:420px;max-height:90vh;display:flex;flex-direction:column;box-shadow:var(--shadow)">
+      <div style="padding:16px 18px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:16px;font-weight:600">⏰ Reminder pe email</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-primary btn-sm" onclick="saveReminder()">Salvează</button>
+          <button onclick="closeTaskModal('reminder-modal')" style="background:transparent;border:none;color:var(--text-muted);font-size:22px;cursor:pointer">×</button>
+        </div>
+      </div>
+      <div style="padding:16px 18px;overflow-y:auto">
+        <div style="margin-bottom:12px">
+          <label class="form-label">Ce îți reamintesc *</label>
+          <input type="text" class="form-input" id="rem-title" placeholder="ex: Plătește întreținerea">
+        </div>
+        <div style="margin-bottom:12px">
+          <label class="form-label">Mesaj (opțional)</label>
+          <textarea class="form-input" id="rem-msg" rows="2" style="resize:vertical" placeholder="Detalii care apar în email"></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div><label class="form-label">Data</label><input type="date" class="form-input" id="rem-date" value="${tomorrow}"></div>
+          <div><label class="form-label">Ora</label><input type="time" class="form-input" id="rem-time" value="09:00"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px">
+          <div>
+            <label class="form-label">Repetare</label>
+            <select class="form-select" id="rem-repeat">${Object.entries(REPEAT_LABELS).map(([k,v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+          </div>
+          <div><label class="form-label">Email</label><input type="email" class="form-input" id="rem-email" value="${escHtml(defaultReminderEmail())}" placeholder="adresa ta"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 4px;align-items:end">
+          <div>
+            <label class="form-label">Domeniu</label>
+            <select class="form-select" id="rem-category">${TASK_CATEGORIES.map(c => `<option value="${c.id}">${c.label}</option>`).join('')}</select>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);cursor:pointer;padding-bottom:10px">
+            <input type="checkbox" id="rem-make-task" checked style="width:16px;height:16px;accent-color:var(--purple)"> Creează și task
+          </label>
+        </div>
+        <p style="font-size:11px;color:var(--text-dim);margin:8px 0 14px;line-height:1.5">Emailul îl trimite scriptul Google, chiar cu aplicația închisă. Se activează odată cu noul script de email.</p>
+        <div class="sub-head" style="margin-top:4px">Remindere active (${reminders.length})</div>
+        <div id="rem-list">${renderReminderList()}</div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.getElementById('rem-title').focus();
+}
+
+function renderReminderList() {
+  if (!reminders.length) return `<div style="font-size:12px;color:var(--text-dim)">Niciun reminder încă.</div>`;
+  const sorted = reminders.slice().sort((a,b) => (a.date + a.time).localeCompare(b.date + b.time));
+  return sorted.map(r => `
+    <div class="rem-item" style="${r.active === false ? 'opacity:.45' : ''}">
+      <div class="rem-main">
+        <div class="rem-title">${escHtml(r.title)}</div>
+        <div class="rem-sub">${r.category ? `<span style="color:${catOf(r).color}">${catOf(r).label}</span> · ` : ''}${r.repeat === 'once' ? formatDate(r.date) : 'din ' + formatDate(r.date)} · ${r.time} · ${REPEAT_LABELS[r.repeat] || r.repeat}${r.taskId ? ' · ✅ task' : ''}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="toggleReminder('${r.id}')" title="Pornește / oprește">${r.active === false ? '▶' : '⏸'}</button>
+      <button class="btn btn-ghost btn-sm" onclick="deleteReminder('${r.id}')" title="Șterge">🗑</button>
+    </div>`).join('');
+}
+
+function saveReminder() {
+  const title = document.getElementById('rem-title').value.trim();
+  const date = document.getElementById('rem-date').value;
+  const time = document.getElementById('rem-time').value;
+  const email = document.getElementById('rem-email').value.trim();
+  if (!title) { showToast('Scrie ce să-ți reamintesc', 'error'); return; }
+  if (!date || !time) { showToast('Alege data și ora', 'error'); return; }
+  if (!email) { showToast('Completează adresa de email', 'error'); return; }
+  localStorage.setItem('crm_reminder_email', email);
+  const message = document.getElementById('rem-msg').value.trim();
+  const repeat = document.getElementById('rem-repeat').value;
+  const category = document.getElementById('rem-category').value;
+  let taskId = null;
+  if (document.getElementById('rem-make-task').checked) {
+    loadTasks();
+    taskId = uid();
+    tasks.push({ id: taskId, title, category, deadline: date, note: message,
+      repeat: repeat === 'daily' ? 'daily' : (repeat === 'weekly' ? 'weekly' : 'none'),
+      done: false, createdAt: new Date().toISOString(), fromReminder: true });
+    localStorage.setItem('crm_tasks_personal', JSON.stringify(tasks));
+    updateTasksBadge();
+  }
+  loadReminders();
+  reminders.push({
+    id: uid(), title, message, date, time, repeat, category, taskId,
+    email, active: true,
+    tz: 'Europe/Bucharest',
+    createdAt: new Date().toISOString()
+  });
+  saveReminders();
+  closeTaskModal('reminder-modal');
+  if (taskId) refreshTaskViews();
+  showToast(taskId ? '⏰ Reminder salvat + task creat' : '⏰ Reminder salvat', 'success');
+}
+function toggleReminder(id) {
+  loadReminders();
+  const r = reminders.find(x => x.id === id);
+  if (r) r.active = r.active === false;
+  saveReminders();
+  document.getElementById('rem-list').innerHTML = renderReminderList();
+}
+function deleteReminder(id) {
+  if (!confirm('Ștergi reminderul?')) return;
+  loadReminders();
+  reminders = reminders.filter(x => x.id !== id);
+  saveReminders();
+  openReminders();
 }
 
 
@@ -2558,7 +3158,9 @@ function goToGlobalResult(wsId, clientId) {
 // ── INIT ──
 // Override saveClients cu versiunea cu auto-sync
 saveClients = saveClientsAndSync;
+initTheme();
 loadAll();
+renderHeaderDate();
 loadDriveConfig();
 
 // Auto-încărcare din Drive la deschidere (dacă e configurat)
